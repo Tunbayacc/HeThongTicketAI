@@ -6,6 +6,7 @@ import {
   CATEGORY_LABELS, PRIORITY_LABELS, STATUS_LABELS, VISIBILITY_LABELS,
   fmtDateTime, labelOf,
 } from '../lib/labels.js';
+import AiReviewPanel from '../components/AiReviewPanel.jsx';
 import '../styles/tickets.css';
 
 const MAX_FILES = 5;
@@ -330,6 +331,13 @@ export default function TicketDetailPage() {
           {commentBusy ? 'Đang gửi…' : 'Gửi phản hồi'}
         </button>
       </section>
+
+      <AiReviewPanel
+        ticketId={id}
+        detail={detail}
+        onDraft={(text) => { setContent(text); setVisibility('PUBLIC'); setActionError(null); }}
+        onTicketChanged={loadDetail}
+      />
 
       <section className="timeline">
         <h2>Hoạt động</h2>

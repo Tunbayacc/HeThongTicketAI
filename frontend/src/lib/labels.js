@@ -44,3 +44,19 @@ export function fmtDate(iso) {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('vi-VN');
 }
+
+// S4 AI copy: keys equal AiResultType / AiStatus enum values (English keys,
+// Vietnamese display — Global Constraint; see backend app/models/enums.py).
+export const AI_TYPE_LABELS = {
+  CLASSIFICATION: 'Phân loại',
+  SUMMARY: 'Tóm tắt',
+  DRAFT_REPLY: 'Nháp trả lời',
+};
+
+export const AI_STATUS_LABELS = {
+  PENDING_REVIEW: 'Chờ duyệt',
+  APPROVED: 'Đã duyệt',
+  EDITED: 'Đã chỉnh sửa',
+  REJECTED: 'Đã từ chối',
+  FAILED: 'Lỗi',
+};
