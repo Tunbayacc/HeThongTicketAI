@@ -1,7 +1,8 @@
 from functools import lru_cache
+from typing import Annotated
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -11,7 +12,7 @@ class Settings(BaseSettings):
     app_name: str = "AI Customer Support"
     environment: str = "development"
     log_level: str = "INFO"
-    cors_allowed_origins: list[str] = Field(
+    cors_allowed_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://localhost:8080"]
     )
 
@@ -41,6 +42,17 @@ class Settings(BaseSettings):
     # Seed admin (created from Task 5 onward)
     seed_admin_email: str = "admin@example.com"
     seed_admin_password: str = ""  # must be provided via env, never hard-coded
+
+    @field_validator("cors_allowed_origins", mode="before")
+    @classmethod
+    def _split_cors_origins(cls, v):
+        # pydantic-settings treats list[str] as a JSON-encoded complex value, but the
+        # env/`docker-compose` value is a plain comma-separated string (e.g.
+        # "http://localhost:5173,http://localhost:8080"). NoDecode keeps the raw
+        # string, which we split here so both forms work.
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
 
 
 @lru_cache

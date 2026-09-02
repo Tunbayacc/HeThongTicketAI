@@ -15,7 +15,7 @@ COPY alembic ./alembic
 # live host code, and -e keeps site-packages pointing at /app/app — so uvicorn
 # picks up edits without a rebuild. (A plain `pip install .` would freeze the
 # built copy in site-packages and stale the dev loop.)
-RUN pip install --no-cache-dir -e . ".[dev]"
+RUN pip install --no-cache-dir -e ".[dev]"
 
 EXPOSE 8000
 
