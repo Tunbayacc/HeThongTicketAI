@@ -1,8 +1,13 @@
 import base64
+import hashlib
 import os
 import secrets
+from datetime import datetime, timedelta, timezone
 
 import bcrypt
+import jwt as pyjwt
+
+from app.core.config import get_settings
 
 
 def hash_password(plain: str) -> str:
@@ -31,3 +36,30 @@ def generate_ticket_code() -> str:
         n, rem = divmod(n, 32)
         chars.append(_ALPHABET[rem])
     return "TK-" + "".join(chars)
+
+
+def create_access_token(*, user_id: str, role: str) -> str:
+    """Short-lived JWT (Settings.access_token_expire_minutes). Payload per SRS FR-AUTH-05."""
+    settings = get_settings()
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),
+        "role": role,
+        "iat": int(now.timestamp()),
+        "exp": int((now + timedelta(minutes=settings.access_token_expire_minutes)).timestamp()),
+    }
+    return pyjwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+
+def decode_access_token(token: str) -> dict:
+    settings = get_settings()
+    return pyjwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+
+
+def generate_refresh_token() -> str:
+    """Random opaque refresh token (>=256 bits entropy); stored hashed (NFR-SEC-04)."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_refresh_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
