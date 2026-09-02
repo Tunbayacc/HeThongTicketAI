@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-import pytest
-
 from app.core.config import Settings
 from app.services import auth_service
 from app.services.audit import coerce_ip

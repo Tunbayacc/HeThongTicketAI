@@ -88,5 +88,6 @@ def register_exception_handlers(app: FastAPI) -> None:
         logger.error("unhandled error", exc_info=exc, extra={"request_id": req_id})
         return JSONResponse(
             status_code=500,
+            headers={"X-Request-ID": req_id},
             content={"error_code": "INTERNAL_ERROR", "message": "Đã xảy ra lỗi nội bộ.", "details": None},
         )

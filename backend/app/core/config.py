@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     )
 
     # Auth (used from S1 onward; keep defaults so S0 boots)
-    jwt_secret_key: str = "dev-insecure-secret-change-me"
+    jwt_secret_key: str = "dev-only-insecure-secret-change-me-0123456789"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7

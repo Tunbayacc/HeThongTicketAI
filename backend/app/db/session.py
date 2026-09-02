@@ -14,7 +14,7 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
-async def get_session():
+async def get_session() -> AsyncSession:
     """FastAPI dependency yielding a request-scoped async session (design spec 5.1)."""
     async with AsyncSessionLocal() as session:
         yield session

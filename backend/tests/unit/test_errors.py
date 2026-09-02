@@ -77,6 +77,8 @@ def test_unknown_500_is_json_error_body():
     body = resp.json()
     assert body["error_code"] == "INTERNAL_ERROR"
     assert "Traceback" not in resp.text and "RuntimeError" not in resp.text
+    assert len(resp.headers["X-Request-ID"]) == 32
+    assert "kaboom" not in resp.text
 
 
 def test_validation_error_is_error_envelope_and_serializable():
