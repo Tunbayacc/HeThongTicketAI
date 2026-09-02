@@ -21,7 +21,7 @@ from app.models.enums import AuditOutcome, CommentSource, TicketStatus, UserRole
 from app.models.team import SupportTeam, TeamMember
 from app.models.ticket import Attachment, Comment, SlaPolicy, Ticket, TicketHistory
 from app.models.user import User
-from app.services.assignment import is_valid_assignee
+from app.services.assignment import is_valid_assignee, needs_reassignment
 from app.services.audit import write_audit
 from app.services.sla_service import extend_deadline
 from app.services.state_machine import can_transition, is_reopen
@@ -140,7 +140,8 @@ def _row_to_item(row) -> dict:
 
 
 async def list_tickets(session: AsyncSession, *, user: User, page: int, page_size: int,
-                       status: str | None = None, q: str | None = None, assigned_to_me: bool = False):
+                       status: str | None = None, q: str | None = None, assigned_to_me: bool = False,
+                       team_id: str | None = None):
     view_ids = await _view_team_ids(session, user)
     conds = _scope_conds(user, view_ids)
     if status:
@@ -155,6 +156,14 @@ async def list_tickets(session: AsyncSession, *, user: User, page: int, page_siz
         ))
     if assigned_to_me:
         conds.append(Ticket.assigned_to == user.id)
+    if team_id:
+        try:
+            tid = uuid.UUID(str(team_id))
+        except ValueError:
+            raise AppError(422, "VALIDATION_ERROR", "team_id không hợp lệ.")
+        # Scope-safe (Controller decision 4): combined with _scope_conds this can
+        # only ever return rows the caller may already see.
+        conds.append(Ticket.team_id == tid)
     total = int((await session.execute(select(func.count(Ticket.id)).where(*conds))).scalar_one())
     stmt = (
         select(*_ITEM_COLS)
@@ -164,7 +173,38 @@ async def list_tickets(session: AsyncSession, *, user: User, page: int, page_siz
         .limit(page_size)
     )
     rows = (await session.execute(stmt)).mappings().all()
-    return total, [_row_to_item(r) for r in rows]
+    items = [_row_to_item(r) for r in rows]
+    return total, await _attach_meta(session, items)
+
+
+async def _attach_meta(session: AsyncSession, items: list[dict]) -> list[dict]:
+    """Attach team_name / assignee_name / needs_reassignment to list dicts.
+
+    The page is small (<=100) so two batched lookups are enough; the derived flag
+    (FR-ASG-09) reads the assignee's is_active at read time (Controller decision 1).
+    """
+    if not items:
+        return items
+    team_ids = {uuid.UUID(i["team_id"]) for i in items if i["team_id"]}
+    assignee_ids = {uuid.UUID(i["assigned_to"]) for i in items if i["assigned_to"]}
+    team_names: dict[str, str] = {}
+    if team_ids:
+        team_names = {str(i): n for i, n in (
+            await session.execute(select(SupportTeam.id, SupportTeam.name)
+                                  .where(SupportTeam.id.in_(team_ids)))).all()}
+    assignee_meta: dict[str, tuple[str, bool]] = {}
+    if assignee_ids:
+        assignee_meta = {str(i): (name, active) for i, name, active in (
+            await session.execute(select(User.id, User.full_name, User.is_active)
+                                  .where(User.id.in_(assignee_ids)))).all()}
+    for it in items:
+        uid = it["assigned_to"]
+        name, active = assignee_meta.get(uid, (None, None)) if uid else (None, None)
+        it["team_name"] = team_names.get(it["team_id"]) if it["team_id"] else None
+        it["assignee_name"] = name
+        it["needs_reassignment"] = needs_reassignment(
+            assigned_to=bool(uid), status=it["status"], assignee_active=active)
+    return items
 
 
 async def teams_with_members(session: AsyncSession, *, user: User):

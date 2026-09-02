@@ -18,6 +18,9 @@ class TicketListItem(BaseModel):
     requester_email: str
     team_id: str | None
     assigned_to: str | None
+    team_name: str | None  # S3: FR-TIC-06 row readout (SupportTeam.name)
+    assignee_name: str | None  # S3: assignee User.full_name
+    needs_reassignment: bool  # S3: FR-ASG-09 derived flag
     first_response_due_at: datetime | None
     resolution_due_at: datetime | None
     created_at: datetime
@@ -67,6 +70,8 @@ class TeamMemberOut(BaseModel):
     id: str
     full_name: str
     team_role: str  # MANAGER | MEMBER
+    role: str       # user role AGENT | MANAGER | ADMIN (S3 assignee picker)
+    is_active: bool  # user.is_active (S3: disable non-active assignees)
 
 
 class TeamOut(BaseModel):
@@ -87,6 +92,9 @@ class TicketDetail(BaseModel):
     status: str
     team_id: str | None
     assigned_to: str | None
+    team_name: str | None
+    assignee_name: str | None
+    needs_reassignment: bool
     sla_policy_id: str | None
     first_response_due_at: datetime | None
     resolution_due_at: datetime | None

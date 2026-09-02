@@ -311,3 +311,145 @@ async def test_teams_picker_manager_scope_and_member_resolution(client):
         assert {m["team_role"] for m in members} == {"MANAGER", "MEMBER"}
     finally:
         await _cleanup_org(org, [])
+
+
+async def test_list_detail_show_team_assignee_and_needs_reassignment(client):
+    org = await _create_org()
+    mgr_tok = await _token(org["manager"])
+    headers = {"Authorization": f"Bearer {mgr_tok}"}
+    try:
+        r = await _public_create(client, requester_name="Khách S3", requester_email="khach.s3@example.com",
+                                 subject="Cần gán cho team A", description="Mô tả đủ dài cho vé phân công S3.")
+        code = r.json()["ticket_code"]
+        async with AsyncSessionLocal() as s:
+            t = await ticket_service.track_public(s, email="khach.s3@example.com", ticket_code=code)
+            ticket_id = t.id
+        assign = await client.post(
+            f"/api/tickets/{ticket_id}/assign", headers=headers,
+            json={"team_id": str(org["team_a"].id), "assigned_to": str(org["agent_a"].id),
+                  "version": 1},
+        )
+        assert assign.status_code == 200, assign.text
+        assert assign.json()["team_name"] == org["team_a"].name
+        assert assign.json()["assignee_name"] == org["agent_a"].full_name
+        assert assign.json()["needs_reassignment"] is False
+        detail = await client.get(f"/api/tickets/{ticket_id}", headers=headers)
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["team_name"] == org["team_a"].name
+        assert detail.json()["assignee_name"] == org["agent_a"].full_name
+        assert detail.json()["needs_reassignment"] is False
+        # Manager list row carries the same readouts (FR-TIC-06 column).
+        lst = await client.get("/api/tickets", headers=headers)
+        row = next(i for i in lst.json()["items"] if i["id"] == str(ticket_id))
+        assert row["team_name"] == org["team_a"].name
+        assert row["assignee_name"] == org["agent_a"].full_name
+        assert row["needs_reassignment"] is False
+    finally:
+        await _cleanup_org(org, [ticket_id])
+
+
+async def test_needs_reassignment_flag_tracks_assignee_deactivation(client):
+    org = await _create_org()
+    agent_c = await _add_user(f"agc.{_tag()}@example.com", "Agent C HTTP", UserRole.AGENT.value)
+    org["user_ids"].append(agent_c.id)  # _cleanup_org now owns agent_c too
+    mgr_tok = await _token(org["manager"])
+    headers = {"Authorization": f"Bearer {mgr_tok}"}
+    try:
+        r = await _public_create(client, requester_name="Khách S3 B", requester_email="khach.s3b@example.com",
+                                 subject="Theo dõi cờ cần phân công lại", description="Mô tả đủ dài cho vé theo dõi cờ S3.")
+        code = r.json()["ticket_code"]
+        async with AsyncSessionLocal() as s:
+            t = await ticket_service.track_public(s, email="khach.s3b@example.com", ticket_code=code)
+            ticket_id = t.id
+        assign = await client.post(
+            f"/api/tickets/{ticket_id}/assign", headers=headers,
+            json={"team_id": str(org["team_a"].id), "assigned_to": str(org["agent_a"].id), "version": 1})
+        assert assign.status_code == 200, assign.text
+        # Deactivate the assignee's *user* row directly (S6 owns the endpoint; S3
+        # derives the flag, so a DB-level toggle is the honest trigger).
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, org["agent_a"].id)
+            u.is_active = False
+            await s.commit()
+        detail = await client.get(f"/api/tickets/{ticket_id}", headers=headers)
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["needs_reassignment"] is True
+        # Reassign to a still-active AGENT of the same team -> flag clears.
+        async with AsyncSessionLocal() as s:
+            s.add(TeamMember(team_id=org["team_a"].id, user_id=agent_c.id,
+                             team_role=TeamRole.MEMBER.value, is_active=True))
+            await s.commit()
+        v2 = detail.json()["version"]
+        reassign = await client.post(
+            f"/api/tickets/{ticket_id}/assign", headers=headers,
+            json={"team_id": str(org["team_a"].id), "assigned_to": str(agent_c.id), "version": v2})
+        assert reassign.status_code == 200, reassign.text
+        assert reassign.json()["assignee_name"] == "Agent C HTTP"
+        assert reassign.json()["needs_reassignment"] is False
+        # List row shows the cleared flag too.
+        lst = await client.get("/api/tickets", headers=headers)
+        row = next(i for i in lst.json()["items"] if i["id"] == str(ticket_id))
+        assert row["needs_reassignment"] is False
+        # Deactivating the NEW assignee re-flags the SAME ticket in the list.
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, agent_c.id)
+            u.is_active = False
+            await s.commit()
+        lst2 = await client.get("/api/tickets", headers=headers)
+        row2 = next(i for i in lst2.json()["items"] if i["id"] == str(ticket_id))
+        assert row2["needs_reassignment"] is True
+    finally:
+        await _cleanup_org(org, [ticket_id])
+
+
+async def test_list_team_filter_scoped(client):
+    org = await _create_org()
+    mgr_tok = await _token(org["manager"])
+    adm_tok = await _token(org["admin"])
+    mgr_h = {"Authorization": f"Bearer {mgr_tok}"}
+    adm_h = {"Authorization": f"Bearer {adm_tok}"}
+    try:
+        r1 = await _public_create(client, requester_name="Khách S3 C", requester_email="khach.s3c@example.com",
+                                  subject="Vé team A", description="Mô tả đủ dài cho vé team A của S3.")
+        async with AsyncSessionLocal() as s:
+            t1 = await ticket_service.track_public(s, email="khach.s3c@example.com", ticket_code=r1.json()["ticket_code"])
+            id_a = t1.id
+        r2 = await _public_create(client, requester_name="Khách S3 D", requester_email="khach.s3d@example.com",
+                                  subject="Vé team B", description="Mô tả đủ dài cho vé team B của S3.")
+        async with AsyncSessionLocal() as s:
+            t2 = await ticket_service.track_public(s, email="khach.s3d@example.com", ticket_code=r2.json()["ticket_code"])
+            id_b = t2.id
+        a = await client.post(f"/api/tickets/{id_a}/assign", headers=mgr_h,
+                              json={"team_id": str(org["team_a"].id), "assigned_to": str(org["agent_a"].id), "version": 1})
+        assert a.status_code == 200, a.text
+        b = await client.post(f"/api/tickets/{id_b}/assign", headers=adm_h,
+                              json={"team_id": str(org["team_b"].id), "assigned_to": str(org["agent_b"].id), "version": 1})
+        assert b.status_code == 200, b.text
+        # Scope-safe filter (Controller decision 4): manager filtering to team A
+        # gets id_a, never id_b (id_b sits in a team the manager does not manage).
+        lst = await client.get(f"/api/tickets?team_id={org['team_a'].id}", headers=mgr_h)
+        ids = [i["id"] for i in lst.json()["items"]]
+        assert str(id_a) in ids and str(id_b) not in ids
+        # Admin sees the ticket under the same filter primitive.
+        lst_all = await client.get(f"/api/tickets?team_id={org['team_a'].id}", headers=adm_h)
+        ids_all = [i["id"] for i in lst_all.json()["items"]]
+        assert str(id_a) in ids_all
+    finally:
+        await _cleanup_org(org, [id_a, id_b])
+
+
+async def test_teams_members_carry_role_and_is_active(client):
+    org = await _create_org()
+    mgr_tok = await _token(org["manager"])
+    try:
+        r = await client.get("/api/teams", headers={"Authorization": f"Bearer {mgr_tok}"})
+        assert r.status_code == 200, r.text
+        teams = r.json()
+        assert len(teams) == 1 and teams[0]["id"] == str(org["team_a"].id)
+        by_id = {m["id"]: m for m in teams[0]["members"]}
+        assert by_id[str(org["manager"].id)]["team_role"] == "MANAGER"
+        assert by_id[str(org["manager"].id)]["role"] == "MANAGER"
+        assert by_id[str(org["agent_a"].id)]["role"] == "AGENT"
+        assert by_id[str(org["agent_a"].id)]["is_active"] is True
+    finally:
+        await _cleanup_org(org, [])

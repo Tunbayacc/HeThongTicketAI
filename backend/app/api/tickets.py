@@ -19,6 +19,7 @@ from app.core.config import get_settings
 from app.core.deps import require_roles
 from app.core.errors import AppError
 from app.db.session import get_session
+from app.models.team import SupportTeam
 from app.models.ticket import Attachment, Ticket
 from app.models.user import User
 from app.schemas.ticket import (
@@ -35,6 +36,7 @@ from app.schemas.ticket import (
     TicketUpdateRequest,
 )
 from app.services import ticket_service
+from app.services.assignment import needs_reassignment
 from app.services.file_rules import parse_allowed_extensions
 from app.services.storage import remove_stored, resolve_upload, store_many
 
@@ -80,6 +82,24 @@ async def _to_detail(session: AsyncSession, ticket: Ticket) -> TicketDetail:
                          key=lambda a: a.created_at)
     history = sorted(ticket.history, key=lambda h: h.created_at, reverse=True)
 
+    # S3 readouts: team/assignee names + FR-ASG-09 needs_reassignment (derived at
+    # read time from the assignee's is_active — Controller decision 1).
+    team_name = assignee_name = None
+    assignee_active = None
+    if ticket.team_id is not None:
+        team = await session.get(SupportTeam, ticket.team_id)
+        team_name = team.name if team is not None else None
+    if ticket.assigned_to is not None:
+        assignee = await session.get(User, ticket.assigned_to)
+        if assignee is not None:
+            assignee_name = assignee.full_name
+            assignee_active = assignee.is_active
+    flag_needs_reassignment = needs_reassignment(
+        assigned_to=ticket.assigned_to is not None,
+        status=ticket.status,
+        assignee_active=assignee_active,
+    )
+
     def _s(v) -> str | None:
         return str(v) if v else None
 
@@ -89,6 +109,7 @@ async def _to_detail(session: AsyncSession, ticket: Ticket) -> TicketDetail:
         subject=ticket.subject, description=ticket.description,
         category=ticket.category, priority=ticket.priority, status=ticket.status,
         team_id=_s(ticket.team_id), assigned_to=_s(ticket.assigned_to),
+        team_name=team_name, assignee_name=assignee_name, needs_reassignment=flag_needs_reassignment,
         sla_policy_id=_s(ticket.sla_policy_id),
         first_response_due_at=ticket.first_response_due_at, resolution_due_at=ticket.resolution_due_at,
         first_response_at=ticket.first_response_at, resolved_at=ticket.resolved_at, closed_at=ticket.closed_at,
@@ -130,9 +151,11 @@ async def list_tickets(
     status: str | None = Query(default=None, pattern="^(OPEN|IN_PROGRESS|PENDING|RESOLVED|CLOSED)$"),
     q: str | None = Query(default=None, max_length=100),
     assigned_to_me: bool = Query(False),
+    team_id: str | None = Query(default=None),
 ) -> TicketListResponse:
     total, items = await ticket_service.list_tickets(
-        session, user=user, page=page, page_size=page_size, status=status, q=q, assigned_to_me=assigned_to_me,
+        session, user=user, page=page, page_size=page_size, status=status, q=q,
+        assigned_to_me=assigned_to_me, team_id=team_id,
     )
     return TicketListResponse(items=[TicketListItem(**it) for it in items],
                               total=total, page=page, page_size=page_size)
@@ -156,7 +179,8 @@ async def list_teams(
     pairs = await ticket_service.teams_with_members(session, user=user)
     return [
         TeamOut(id=str(team.id), name=team.name, members=[
-            TeamMemberOut(id=str(m.user.id), full_name=m.user.full_name, team_role=m.team_role)
+            TeamMemberOut(id=str(m.user.id), full_name=m.user.full_name, team_role=m.team_role,
+                          role=m.user.role, is_active=m.user.is_active)
             for m in members if m.user is not None
         ])
         for team, members in pairs
