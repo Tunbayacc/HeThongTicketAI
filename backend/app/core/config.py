@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
     cookie_secure: bool = False
 
+    # Auth lockout + refresh-cookie name (S1; defaults keep dev simple)
+    refresh_token_cookie_name: str = "refresh_token"
+    max_login_attempts: int = 5
+    account_lock_minutes: int = 15
+
     # AI provider (real use from S4 onward)
     ai_provider: str = "mock"  # "gemini" | "mock"
     gemini_api_key: str = ""
