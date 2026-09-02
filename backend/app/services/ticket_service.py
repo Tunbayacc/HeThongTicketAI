@@ -452,6 +452,7 @@ async def track_public(session: AsyncSession, *, email: str, ticket_code: str) -
         first_response_due_at=ticket.first_response_due_at, resolution_due_at=ticket.resolution_due_at,
         first_response_at=ticket.first_response_at, resolved_at=ticket.resolved_at,
         closed_at=ticket.closed_at, version=ticket.version,
+        created_at=ticket.created_at, updated_at=ticket.updated_at,
     )
     public_ticket.comments = [
         Comment(id=c.id, author_id=c.author_id, content=c.content, visibility=c.visibility,
