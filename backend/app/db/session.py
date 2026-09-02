@@ -12,3 +12,9 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False,
     autoflush=False,
 )
+
+
+async def get_session():
+    """FastAPI dependency yielding a request-scoped async session (design spec 5.1)."""
+    async with AsyncSessionLocal() as session:
+        yield session

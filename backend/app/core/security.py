@@ -39,7 +39,14 @@ def generate_ticket_code() -> str:
 
 
 def create_access_token(*, user_id: str, role: str) -> str:
-    """Short-lived JWT (Settings.access_token_expire_minutes). Payload per SRS FR-AUTH-05."""
+    """Short-lived JWT (Settings.access_token_expire_minutes). Payload per SRS FR-AUTH-05.
+
+    Each issuance carries a random `jti` (RFC 7519 4.1.7) so that every access
+    token is unique even when minted within the same integer-second `iat` window.
+    FR-AUTH-06 refresh therefore always returns a distinguishable fresh token,
+    and the backend stays stateless (NFR-SCA-01) because jti is never validated
+    against a store.
+    """
     settings = get_settings()
     now = datetime.now(timezone.utc)
     payload = {
@@ -47,6 +54,7 @@ def create_access_token(*, user_id: str, role: str) -> str:
         "role": role,
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=settings.access_token_expire_minutes)).timestamp()),
+        "jti": secrets.token_urlsafe(16),
     }
     return pyjwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
