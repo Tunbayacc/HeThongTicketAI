@@ -52,6 +52,19 @@ Luồng phân công được làm đầy trên nền tối thiểu của S2 (FR-
 
 Demo nhanh: đăng nhập `hung.manager@example.com` (mật khẩu seed ở bảng S1) → mở vé trong `/app/tickets` → "Phân công" → chọn nhóm + agent → xem lịch sử trong "Hoạt động" → thử gán sang nhóm khác để thấy `403`. Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-02-s3-teams-assignment.md`.
 
+### S4 — Trợ lý AI (đề xuất, con người duyệt)
+
+Từ S4, nhân viên/quản lý/admin có **AI hỗ trợ soạn nội dung** ngay trong trang chi tiết vé — nhưng AI chỉ **đề xuất**, mọi kết quả đều phải có người duyệt trước khi áp dụng (human-in-the-loop):
+
+- **Ba loại kết quả**: Phân loại (nhóm + ưu tiên), Tóm tắt (bối cảnh cho nhân viên), Nháp trả lời (soạn phản hồi cho khách). Nút nằm trong khối "Trợ lý AI" dưới ô phản hồi.
+- **Không bao giờ tự hành động**: AI không tự gửi phản hồi, không tự phân công, không tự đổi trạng thái/đóng vé. Kết quả mới luôn ở trạng thái *Chờ duyệt*.
+- **Duyệt / chỉnh sửa / từ chối**: Duyệt đề xuất thì áp dụng phân loại (ghi lịch sử + audit, tăng `version`); có thể chỉnh nhóm/ưu tiên rồi "Lưu chỉnh sửa"; từ chối thì không thay đổi gì. Với bản nháp, bấm "Đưa vào ô trả lời" để đưa nội dung xuống ô phản hồi rồi con người gửi.
+- **Độ tin cậy thấp**: khi AI tự đánh giá độ tin cậy dưới ngưỡng (`AI_LOW_CONFIDENCE_THRESHOLD`, mặc định 0.70), vé gắn cảnh báo *độ tin cậy thấp* để nhân viên kiểm tra kỹ.
+- **Quyền riêng tư**: trước khi gửi tới model, email/SĐT trong mô tả và bình luận công khai được **che** thành `[EMAIL-n]`/`[PHONE-n]`; bình luận nội bộ không bao giờ gửi đi. Lịch sử quá dài bị cắt kèm ghi chú.
+- **Chống bùng nổ**: các endpoint tạo kết quả có giới hạn tần suất (`AI_RATE`; mặc định 30/phút). Lỗi hết thời gian/phản hồi không hợp lệ được lưu thành kết quả `Lỗi` (có mã lỗi) thay vì nuốt im.
+
+Demo nhanh: tạo một vé ở `/` với tiêu đề về "đăng nhập/mật khẩu" → đăng nhập `hung.manager@example.com` (mật khẩu seed ở bảng S1) → mở vé → khối "Trợ lý AI" → **Phân loại tự động** → **Duyệt đề xuất** → nhóm/ưu tiên được áp dụng (xem trong "Hoạt động"). Thử **Tóm tắt AI** và **Nháp trả lời AI** → "Đưa vào ô trả lời" → Gửi. Khi có key Gemini: đặt `AI_PROVIDER=gemini` + `GEMINI_API_KEY=...` trong `.env` rồi chạy lại stack. Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-02-s4-ai-engine.md`.
+
 ## Chạy backend khi đang phát triển
 
 - DB: `docker compose up -d db`
