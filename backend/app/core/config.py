@@ -43,6 +43,16 @@ class Settings(BaseSettings):
     # Uploads (real use from S2 onward)
     max_upload_size_mb: int = 10
     allowed_file_types: str = "pdf,png,jpg,jpeg,txt,docx"
+    upload_dir: str = "uploads"
+    upload_max_files: int = 5
+
+    # SLA (used from S2 onward: "due soon" badge threshold)
+    sla_due_soon_minutes: int = 120
+
+    # Rate limiting (S2: slowapi over /public only)
+    rate_limit_enabled: bool = True
+    public_create_rate: str = "20/hour"
+    public_track_rate: str = "60/hour"
 
     # Seed admin (created from Task 5 onward)
     seed_admin_email: str = "admin@example.com"
