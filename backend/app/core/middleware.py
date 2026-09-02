@@ -33,6 +33,12 @@ class RequestContextMiddleware:
                 request_id = value.decode("latin-1")
                 break
 
+        # Stash the id on the shared ASGI scope so it survives the contextvar
+        # reset below: Starlette's ServerErrorMiddleware (which dispatches the
+        # generic-Exception handler) rebuilds Request(scope) after this
+        # middleware unwinds, so request.state.request_id stays correlatable.
+        scope.setdefault("state", {})["request_id"] = request_id
+
         token = request_id_var.set(request_id)
         start = time.perf_counter()
         state = {"status": 500}

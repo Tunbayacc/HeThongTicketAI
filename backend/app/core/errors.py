@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -71,14 +72,20 @@ def register_exception_handlers(app: FastAPI) -> None:
             content={
                 "error_code": "VALIDATION_ERROR",
                 "message": "Dữ liệu không hợp lệ.",
-                "details": exc.errors(),
+                # jsonable_encoder makes the details JSON-safe: pydantic v2 embeds a
+                # live exception instance in an error's `ctx`, which json.dumps cannot
+                # serialize (FastAPI's own default 422 handler does the same).
+                "details": jsonable_encoder(exc.errors()),
             },
         )
 
     @app.exception_handler(Exception)
-    async def _unhandled(_: Request, exc: Exception) -> JSONResponse:
+    async def _unhandled(request: Request, exc: Exception) -> JSONResponse:
         # Log the full traceback with request_id for NFR-OBS; never send it to the client.
-        logger.error("unhandled error", exc_info=exc, extra={"request_id": get_request_id()})
+        # This handler runs in ServerErrorMiddleware, after RequestContextMiddleware has
+        # reset the contextvar, so prefer the id stashed on the ASGI scope.
+        req_id = getattr(request.state, "request_id", None) or get_request_id()
+        logger.error("unhandled error", exc_info=exc, extra={"request_id": req_id})
         return JSONResponse(
             status_code=500,
             content={"error_code": "INTERNAL_ERROR", "message": "Đã xảy ra lỗi nội bộ.", "details": None},
