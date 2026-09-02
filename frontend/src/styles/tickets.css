@@ -56,6 +56,8 @@
 .field input, .field select, .field textarea { padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); font-size: var(--font-size-base); font-family: inherit; }
 .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; border-color: transparent; }
 .form-error { color: var(--color-danger); margin: 0; font-size: var(--font-size-sm); }
+/* S3: ticket whose assignee is deactivated (FR-ASG-09) */
+.needs-reassign { display: flex; align-items: center; gap: var(--space-2); }
 .text-muted { color: var(--color-text-muted); }
 .btn-primary { padding: var(--space-2) var(--space-4); background: var(--color-primary); color: #fff; border: none; border-radius: var(--radius-sm); font-size: var(--font-size-base); cursor: pointer; }
 .btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); }

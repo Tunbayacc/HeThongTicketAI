@@ -273,6 +273,17 @@ export default function TicketDetailPage() {
         <p className="text-muted">
           {detail.requester_name} · {detail.requester_email} · Gửi lúc {fmtDateTime(detail.created_at)}
         </p>
+        <p className="text-muted">
+          Nhóm: {detail.team_name || '—'} · Người phụ trách: {detail.assignee_name || 'Chưa phân công'}
+        </p>
+        {detail.needs_reassignment && (
+          <p className="form-error needs-reassign" role="alert">
+            Vé này cần được phân công lại — người phụ trách hiện tại đã bị vô hiệu hóa.
+            {canAssign && (
+              <button className="btn-secondary" type="button" onClick={openAssign}>Phân công lại</button>
+            )}
+          </p>
+        )}
         {detail.resolution_due_at && (
           <p className="text-muted">Hạn xử lý: {fmtDateTime(detail.resolution_due_at)}</p>
         )}
@@ -425,9 +436,14 @@ export default function TicketDetailPage() {
             <label className="field"><span>Người phụ trách (để trống nếu chỉ gán nhóm)</span>
               <select value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
                 <option value="">— Chưa phân công —</option>
-                {(currentTeam?.members || []).map((m) => (
-                  <option key={m.id} value={String(m.id)}>{m.full_name} ({m.team_role})</option>
-                ))}
+                {(currentTeam?.members || []).map((m) => {
+                  const blocked = m.role !== 'AGENT' || m.is_active === false;
+                  return (
+                    <option key={m.id} value={String(m.id)} disabled={blocked}>
+                      {m.full_name} ({m.team_role}){blocked ? ' — không gán được' : ''}
+                    </option>
+                  );
+                })}
               </select>
             </label>
             <label className="field"><span>Lý do phân công</span>

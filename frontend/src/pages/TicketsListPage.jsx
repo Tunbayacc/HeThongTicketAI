@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
+import { useAuth } from '../auth/AuthContext.jsx';
 import {
   CATEGORY_LABELS, PRIORITY_LABELS, STATUS_LABELS, fmtDateTime, labelOf,
 } from '../lib/labels.js';
@@ -21,6 +22,11 @@ export default function TicketsListPage() {
   const [assignedToMe, setAssignedToMe] = useState(false);
   const [submittedQ, setSubmittedQ] = useState('');
 
+  const { user } = useAuth();
+  const canFilterTeam = user?.role === 'MANAGER' || user?.role === 'ADMIN';
+  const [teams, setTeams] = useState([]);
+  const [teamFilter, setTeamFilter] = useState('');
+
   async function load(nextPage = page, filters = {}) {
     setLoading(true);
     setError(null);
@@ -35,6 +41,8 @@ export default function TicketsListPage() {
       if (st) params.set('status', st);
       if (query) params.set('q', query);
       if (mine) params.set('assigned_to_me', 'true');
+      const tf = filters.teamFilter ?? teamFilter;
+      if (tf) params.set('team_id', tf);
       const body = await api.get(`/api/tickets?${params.toString()}`);
       setRows(body.items);
       setTotal(body.total);
@@ -47,9 +55,15 @@ export default function TicketsListPage() {
   }
 
   useEffect(() => {
-    load(1, { status, q: submittedQ, assignedToMe });
+    load(1, { status, q: submittedQ, assignedToMe, teamFilter });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, submittedQ, assignedToMe]);
+  }, [status, submittedQ, assignedToMe, teamFilter]);
+
+  useEffect(() => {
+    if (!canFilterTeam) return;
+    api.get('/api/teams').then(setTeams).catch(() => setTeams([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canFilterTeam]);
 
   function applySearch(e) {
     e.preventDefault();
@@ -81,6 +95,12 @@ export default function TicketsListPage() {
             <option key={value} value={value}>{label}</option>
           ))}
         </select>
+        {canFilterTeam && (
+          <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)} aria-label="Lọc theo nhóm">
+            <option value="">Tất cả nhóm</option>
+            {teams.map((t) => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
+          </select>
+        )}
         <label className="filter-check">
           <input type="checkbox" checked={assignedToMe} onChange={(e) => setAssignedToMe(e.target.checked)} />
           Vé của tôi
@@ -102,7 +122,7 @@ export default function TicketsListPage() {
             <table className="tickets-table">
               <thead>
                 <tr>
-                  <th>Mã</th><th>Tiêu đề</th><th>Khách hàng</th>
+                  <th>Mã</th><th>Tiêu đề</th><th>Khách hàng</th><th>Nhóm / Phụ trách</th>
                   <th>Phân loại</th><th>Ưu tiên</th><th>Trạng thái</th><th>Cập nhật</th>
                 </tr>
               </thead>
@@ -112,6 +132,12 @@ export default function TicketsListPage() {
                     <td className="code-cell">{t.ticket_code}</td>
                     <td className="subject-cell">{t.subject}</td>
                     <td>{t.requester_name}</td>
+                    <td>
+                      {t.team_name || '—'}
+                      {t.team_name && t.assignee_name ? ' · ' : ''}
+                      {t.assignee_name || (t.team_name ? 'Chưa phân công' : '')}
+                      {t.needs_reassignment && <span className="badge badge--pending">Cần phân công lại</span>}
+                    </td>
                     <td>{labelOf(CATEGORY_LABELS, t.category)}</td>
                     <td><span className={`badge badge--${(t.priority || '').toLowerCase()}`}>{labelOf(PRIORITY_LABELS, t.priority)}</span></td>
                     <td><span className={`badge badge--${(t.status || '').toLowerCase()}`}>{labelOf(STATUS_LABELS, t.status)}</span></td>
