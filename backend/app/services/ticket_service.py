@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.errors import AppError
 from app.models.enums import AuditOutcome, CommentSource, TicketStatus, UserRole
@@ -182,6 +183,10 @@ async def teams_with_members(session: AsyncSession, *, user: User):
             await session.execute(
                 select(TeamMember).where(TeamMember.team_id == team.id, TeamMember.is_active.is_(True))
                 .order_by(TeamMember.team_role, TeamMember.joined_at)
+                # Eager-load member users: the router reads m.user.id/full_name
+                # synchronously to build the response; a lazy "select" load would
+                # raise MissingGreenlet under the async request session.
+                .options(selectinload(TeamMember.user))
             )
         ).scalars().all()
         result.append((team, members))

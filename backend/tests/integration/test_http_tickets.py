@@ -290,3 +290,24 @@ async def test_attachment_upload_and_download_scope(client):
     finally:
         await _remove_ticket_files(ticket_id)
         await _cleanup_org(org, [ticket_id])
+
+
+async def test_teams_picker_manager_scope_and_member_resolution(client):
+    org = await _create_org()
+    mgr_tok = await _token(org["manager"])
+    try:
+        # MANAGER sees only the team they manage (team A), with members resolved.
+        r = await client.get("/api/teams", headers={"Authorization": f"Bearer {mgr_tok}"})
+        assert r.status_code == 200, r.text
+        teams = r.json()
+        assert len(teams) == 1
+        assert teams[0]["id"] == str(org["team_a"].id)
+        members = teams[0]["members"]
+        # Reading m.user.id / m.user.full_name must not trigger lazy async IO
+        # (MissingGreenlet) — each member is present with a resolvable full_name.
+        by_id = {m["id"]: m["full_name"] for m in members}
+        assert by_id[str(org["manager"].id)] == "Quản lý HTTP"
+        assert by_id[str(org["agent_a"].id)] == "Agent A HTTP"
+        assert {m["team_role"] for m in members} == {"MANAGER", "MEMBER"}
+    finally:
+        await _cleanup_org(org, [])
