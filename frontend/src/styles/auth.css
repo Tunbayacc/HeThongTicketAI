@@ -1,0 +1,23 @@
+/* S1 auth + app shell (design spec 6.1/6.3: vanilla CSS, token-driven). */
+.auth-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--color-surface); padding: var(--space-4); }
+.login-card { width: 100%; max-width: 380px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-8); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: var(--space-4); }
+.login-title { margin: 0; font-size: var(--font-size-lg); }
+.field { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--font-size-sm); }
+.field input { padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); font-size: var(--font-size-base); }
+.field input:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; border-color: transparent; }
+.btn-primary { padding: var(--space-2) var(--space-4); background: var(--color-primary); color: #fff; border: none; border-radius: var(--radius-sm); font-size: var(--font-size-base); cursor: pointer; }
+.btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-link { background: none; border: none; color: var(--color-primary); cursor: pointer; padding: 0; font-size: var(--font-size-sm); }
+.form-error { color: var(--color-danger); margin: 0; font-size: var(--font-size-sm); }
+.back-link { font-size: var(--font-size-sm); }
+.text-muted { color: var(--color-text-muted); }
+.app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+.app-header { display: flex; align-items: center; gap: var(--space-6); padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-border); background: var(--color-bg); position: sticky; top: 0; }
+.app-brand { font-size: var(--font-size-base); }
+.app-nav { display: flex; gap: var(--space-2); flex: 1; }
+.app-nav-link { padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); color: var(--color-text); text-decoration: none; font-size: var(--font-size-sm); }
+.app-nav-link.active { background: var(--color-primary); color: #fff; }
+.app-user { display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-size-sm); }
+.role-badge { border: 1px solid var(--color-border); border-radius: 999px; padding: 0 var(--space-2); font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.app-content { flex: 1; padding: var(--space-6); }
