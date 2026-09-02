@@ -13,6 +13,20 @@ Yêu cầu đặc tả: [`documents/SRS.md`](documents/SRS.md). Bản thiết k�
 
 Backend tự chạy `alembic upgrade head` + seed (idempotent) trước khi khởi động.
 
+### S1 — Đăng nhập & phân quyền
+
+Từ S1, hệ thống có đăng nhập (JWT access 15 phút + refresh token 7 ngày trong cookie HttpOnly `refresh_token`). Mở `http://localhost:8080` và đăng nhập bằng một tài khoản seed:
+
+| Vai trò | Email | Mật khẩu (seed) | Vùng sau đăng nhập |
+|---|---|---|---|
+| Quản trị viên | `admin@example.com` | giá trị `SEED_ADMIN_PASSWORD` trong `.env` | `/app/admin` |
+| Quản lý | `hung.manager@example.com` | `hung.manager@Dev123` | `/app/dashboard` |
+| Quản lý | `ha.manager@example.com` | `ha.manager@Dev123` | `/app/dashboard` |
+| Nhân viên | `lan.agent@example.com` | `lan.agent@Dev123` | `/app/tickets` |
+| Nhân viên | `minh.agent@example.com` | `minh.agent@Dev123` | `/app/tickets` |
+
+Sai mật khẩu 5 lần trong 15 phút sẽ khóa tạm thời tài khoản (`AUTH_ACCOUNT_LOCKED`). Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-02-s1-auth-rbac.md`.
+
 ## Chạy backend khi đang phát triển
 
 - DB: `docker compose up -d db`
