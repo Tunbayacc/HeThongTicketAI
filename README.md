@@ -27,6 +27,19 @@ Từ S1, hệ thống có đăng nhập (JWT access 15 phút + refresh token 7 n
 
 Sai mật khẩu 5 lần trong 15 phút sẽ khóa tạm thời tài khoản (`AUTH_ACCOUNT_LOCKED`). Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-02-s1-auth-rbac.md`.
 
+### S2 — Public Portal & Ticket core
+
+Từ S2, khách hàng **không cần đăng nhập** để gửi yêu cầu hỗ trợ và tra cứu tiến độ:
+
+- **`/`** — Biểu mẫu gửi yêu cầu (họ tên, email, tiêu đề, mô tả, phân loại, tệp đính kèm tối đa 5 tệp). Vé được tạo ở trạng thái `OPEN`, ưu tiên `MEDIUM`, kèm hạn SLA.
+- **`/track`** — Tra cứu bằng mã vé + email. Chỉ hiển thị thông tin công khai (không lộ ghi chú nội bộ, phân công hay audit). Nhập sai mã/email trả về cùng một thông báo (chống dò vé).
+- **`/app/tickets`** và **`/app/tickets/:id`** — Nhân viên/quản lý/admin: danh sách có lọc (trạng thái, tìm kiếm, "vé của tôi"), chi tiết vé với dòng thời gian (phản hồi, lịch sử, tệp), đổi trạng thái theo state machine, bình luận công khai/nội bộ, đính kèm + tải tệp.
+- **Phân công tối thiểu** (S2): Quản lý/Admin gán vé vào nhóm + người phụ trách. Quản lý chỉ gán được vào nhóm mình quản lý; người được gán phải thuộc nhóm và còn hoạt động.
+- Truy cập theo scope: Admin xem tất cả; Quản lý xem vé nhóm mình quản lý + vé chưa gán nhóm; Nhân viên xem vé nhóm mình + vé được gán cho mình. Vé ngoài scope trả về `404` (không lộ thông tin).
+- Mọi thao tác ghi đều dùng **optimistic lock**: body kèm `version`; ghi sai phiên bản trả về `409 VERSION_CONFLICT`.
+
+Demo nhanh: gửi vé tại `/` → đăng nhập `lan.agent@example.com` (mật khẩu seed ở bảng S1) → mở vé trong `/app/tickets` → phản hồi → chuyển `RESOLVED`. Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-02-s2-ticket-core.md`.
+
 ## Chạy backend khi đang phát triển
 
 - DB: `docker compose up -d db`
