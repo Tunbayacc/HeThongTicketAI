@@ -40,6 +40,18 @@ Từ S2, khách hàng **không cần đăng nhập** để gửi yêu cầu hỗ
 
 Demo nhanh: gửi vé tại `/` → đăng nhập `lan.agent@example.com` (mật khẩu seed ở bảng S1) → mở vé trong `/app/tickets` → phản hồi → chuyển `RESOLVED`. Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-02-s2-ticket-core.md`.
 
+### S3 — Nhóm & phân công
+
+Luồng phân công được làm đầy trên nền tối thiểu của S2 (FR-ASG):
+
+- **Người được gán phải hợp lệ**: khi gán cho một người, người đó phải là **Support Agent đang hoạt động** thuộc nhóm được chọn (`role=AGENT`, chưa bị vô hiệu hóa, còn trong nhóm). Gán sai → `400 ASSIGNEE_NOT_IN_TEAM`.
+- **Phạm vi phân công**: Quản lý chỉ gán trong nhóm mình quản lý; Admin gán được toàn hệ thống; Nhân viên không được gán. Vé gán ngoài nhóm của Quản lý → `403`. Phân công **không** làm đổi trạng thái/`resolved_at` (FR-ASG-10).
+- **Đổi người phụ trách**: mỗi lần gán/đổi đều ghi một dòng lịch sử `ASSIGNED` (ai gán, ai/nhóm nhận, lúc nào, lý do), giữ nguyên quá khứ (FR-ASG-07/08).
+- **"Cần phân công lại"** (FR-ASG-09): nếu người phụ trách của một vé đang mở bị **vô hiệu hóa**, vé hiển thị cờ *cần phân công lại* ở danh sách + chi tiết. Cờ được **tính động** (dựa trên trạng thái người phụ trách), tự hết khi gán cho một agent đang hoạt động.
+- Danh sách/detail hiển thị **tên nhóm + người phụ trách**; danh sách thêm bộ lọc **theo nhóm** (Quản lý/Admin) trong phạm vi được xem.
+
+Demo nhanh: đăng nhập `hung.manager@example.com` (mật khẩu seed ở bảng S1) → mở vé trong `/app/tickets` → "Phân công" → chọn nhóm + agent → xem lịch sử trong "Hoạt động" → thử gán sang nhóm khác để thấy `403`. Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-02-s3-teams-assignment.md`.
+
 ## Chạy backend khi đang phát triển
 
 - DB: `docker compose up -d db`
