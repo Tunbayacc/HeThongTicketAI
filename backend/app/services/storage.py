@@ -79,3 +79,27 @@ def resolve_upload(storage_path: str) -> Path:
 
 def remove_stored(storage_path: str) -> None:
     resolve_upload(storage_path).unlink(missing_ok=True)
+
+
+async def store_many(
+    uploads, *, upload_dir: Path, allowed: set[str], max_bytes: int, max_files: int
+) -> list[StoredFile]:
+    """Validate the whole batch up front, then store each file.
+
+    The count limit is checked BEFORE anything is written (SRS file rule '<= 5 tệp
+    mỗi yêu cầu' -> 422 VALIDATION_ERROR). If any single file is rejected mid-way,
+    the files already written are removed so a failed request never leaks bytes.
+    """
+    if uploads is None:
+        return []
+    if len(uploads) > max_files:
+        raise AppError(422, "VALIDATION_ERROR", f"Mỗi yêu cầu tối đa {max_files} tệp đính kèm.")
+    stored: list[StoredFile] = []
+    try:
+        for up in uploads:
+            stored.append(await store_upload(up, upload_dir=upload_dir, allowed=allowed, max_bytes=max_bytes))
+    except Exception:
+        for sf in stored:
+            remove_stored(sf.storage_path)
+        raise
+    return stored
