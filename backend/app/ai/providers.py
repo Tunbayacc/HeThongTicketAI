@@ -141,6 +141,13 @@ class GeminiProvider(AIProvider):
         return (f"https://generativelanguage.googleapis.com/v1beta/models/"
                 f"{self.model_name}:{task}?key={self._key}")
 
+    def _model_url(self) -> str:
+        # Model metadata is the plain /models/{model} resource — colon-suffix URLs
+        # (:generateContent, :countTokens, ...) are reserved for prediction ops, so
+        # a ':model' method does not exist and would 404. probe() must use this path.
+        return (f"https://generativelanguage.googleapis.com/v1beta/models/"
+                f"{self.model_name}?key={self._key}")
+
     async def generate(self, *, result_type: str, system_prompt: str, user_prompt: str) -> str:
         payload = build_generate_payload(system_prompt=system_prompt, user_prompt=user_prompt)
         attempt = 0
@@ -154,7 +161,14 @@ class GeminiProvider(AIProvider):
                                     "Dịch vụ AI đã quá thời gian phản hồi.") from exc
             transient = resp.status_code == 429 or resp.status_code >= 500
             if resp.status_code == 200:
-                return parse_content_text(resp.text)
+                try:
+                    return parse_content_text(resp.text)
+                except (ValueError, KeyError, IndexError) as exc:
+                    # Malformed body, or 200 with no candidates (e.g. a
+                    # safety-blocked prompt). Surface as a sanitized ProviderError so
+                    # the service persists a FAILED row instead of an unhandled 500.
+                    raise ProviderError("AI_INVALID_RESPONSE",
+                                        "Phản hồi AI không hợp lệ.") from exc
             if transient and attempt < 2:
                 await asyncio.sleep(0.2)
                 continue
@@ -165,7 +179,7 @@ class GeminiProvider(AIProvider):
     async def probe(self) -> bool:
         try:
             async with httpx.AsyncClient(timeout=5) as client:
-                resp = await client.get(self._url("model"))
+                resp = await client.get(self._model_url())
             return resp.status_code == 200
         except (httpx.HTTPError, ValueError):
             return False
