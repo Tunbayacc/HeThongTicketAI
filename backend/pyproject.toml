@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-support-backend"
+version = "0.1.0"
+description = "Customer-support system with AI (backend)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy[asyncio]>=2.0.30",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.2",
+    "bcrypt>=4.1",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    # starlette>=1.6 TestClient is built on httpx2 (the httpx successor);
+    # installing it silences the StarletteDeprecationWarning that otherwise
+    # fires when TestClient falls back to the legacy httpx package.
+    "httpx2>=2.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: requires a live PostgreSQL (docker compose up -d db)",
+]
+asyncio_mode = "auto"
