@@ -67,6 +67,7 @@ export const api = {
   postForm: (path, formData) => request(path, { method: 'POST', body: formData }),
   // Binary GET (file download) with the same in-memory Bearer token as the JSON calls.
   fetchBlob: (path) => fetchBlob(path),
+  patch: (path, data) => request(path, { method: 'PATCH', body: JSON.stringify(data ?? {}) }),
 };
 
 export { request };

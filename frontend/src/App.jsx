@@ -1,11 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute, RequireRoles } from './auth/guards.jsx';
-import { AdminLanding, AgentLanding, ManagerLanding, RoleLandingRedirect } from './app/Landings.jsx';
+import { AdminLanding, ManagerLanding, RoleLandingRedirect } from './app/Landings.jsx';
 import AppShell from './app/AppShell.jsx';
 import PortalCreatePage from './pages/PortalCreatePage.jsx';
 import PortalTrackPage from './pages/PortalTrackPage.jsx';
 import HealthPage from './pages/HealthPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import TicketsListPage from './pages/TicketsListPage.jsx';
+import TicketDetailPage from './pages/TicketDetailPage.jsx';
 
 export default function App() {
   return (
@@ -28,7 +30,15 @@ export default function App() {
             path="tickets"
             element={
               <RequireRoles roles={['AGENT', 'MANAGER', 'ADMIN']}>
-                <AgentLanding />
+                <TicketsListPage />
+              </RequireRoles>
+            }
+          />
+          <Route
+            path="tickets/:id"
+            element={
+              <RequireRoles roles={['AGENT', 'MANAGER', 'ADMIN']}>
+                <TicketDetailPage />
               </RequireRoles>
             }
           />
