@@ -1,0 +1,27 @@
+/* S2 Public Portal (design spec 6.3: vanilla CSS, token-driven). */
+.portal-page { min-height: 100vh; background: var(--color-surface); display: flex; align-items: flex-start; justify-content: center; padding: var(--space-8) var(--space-4); }
+.portal-card { width: 100%; max-width: 640px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-8); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: var(--space-4); }
+.portal-card h1 { margin: 0; font-size: var(--font-size-lg); }
+.portal-card form { display: flex; flex-direction: column; gap: var(--space-4); }
+.portal-code { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.04em; text-align: center; padding: var(--space-4); border: 1px dashed var(--color-primary); border-radius: var(--radius-md); color: var(--color-primary); background: var(--color-surface); }
+.portal-actions { display: flex; gap: var(--space-3); justify-content: center; }
+.btn-ghost { padding: var(--space-2) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text); text-decoration: none; text-align: center; }
+.btn-ghost:hover { background: var(--color-surface); }
+.portal-foot { margin: 0; font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.track-result { border-top: 1px solid var(--color-border); padding-top: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.track-meta { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-2) var(--space-4); margin: 0; font-size: var(--font-size-sm); }
+.track-meta dt { color: var(--color-text-muted); }
+.track-meta dd { margin: 0; font-weight: 500; }
+.comment-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.comment-item { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); background: var(--color-surface); }
+.comment-content { margin: 0 0 var(--space-1); white-space: pre-wrap; }
+.portal-card .field span { display: block; margin-bottom: var(--space-1); }
+/* field/btn/form-error reused with S1 auth.css definitions; keep in sync. */
+.field { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--font-size-sm); }
+.field input, .field select, .field textarea { padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); font-size: var(--font-size-base); font-family: inherit; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; border-color: transparent; }
+.btn-primary { padding: var(--space-2) var(--space-4); background: var(--color-primary); color: #fff; border: none; border-radius: var(--radius-sm); font-size: var(--font-size-base); cursor: pointer; text-decoration: none; text-align: center; }
+.btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.form-error { color: var(--color-danger); margin: 0; font-size: var(--font-size-sm); }
+.text-muted { color: var(--color-text-muted); }

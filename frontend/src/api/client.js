@@ -63,6 +63,34 @@ async function request(path, options = {}) {
 export const api = {
   get: (path) => request(path),
   post: (path, data) => request(path, { method: 'POST', body: JSON.stringify(data ?? {}) }),
+  // multipart: rawFetch already skips the JSON Content-Type for FormData (S2 portal upload).
+  postForm: (path, formData) => request(path, { method: 'POST', body: formData }),
+  // Binary GET (file download) with the same in-memory Bearer token as the JSON calls.
+  fetchBlob: (path) => fetchBlob(path),
 };
 
 export { request };
+
+// --- file download (S2 attachments; see TicketDetailPage in Task 6) ----------
+
+export async function fetchBlob(path) {
+  const headers = {};
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  const res = await fetch(path, { headers, credentials: 'same-origin' });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw toError(res, body);
+  }
+  return res.blob();
+}
+
+export function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
