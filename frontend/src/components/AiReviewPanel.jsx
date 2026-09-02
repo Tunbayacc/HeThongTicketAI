@@ -34,9 +34,13 @@ function OutputBody({ row }) {
         {Array.isArray(o.key_points) && o.key_points.length > 0 && (
           <p><strong>Điểm chính:</strong></p>
         )}
-        {Array.isArray(o.key_points) && o.key_points.map((k, i) => (
-          <li key={`k-${i}`}>{k}</li>
-        ))}
+        {Array.isArray(o.key_points) && o.key_points.length > 0 && (
+          <ul className="ai-keypoints">
+            {o.key_points.map((k, i) => (
+              <li key={`k-${i}`}>{k}</li>
+            ))}
+          </ul>
+        )}
         {Array.isArray(o.next_steps) && o.next_steps.length > 0 && (
           <p className="ai-meta">Bước tiếp theo: {o.next_steps.join(' · ')}</p>
         )}
@@ -296,22 +300,24 @@ export default function AiReviewPanel({ ticketId, detail, onDraft, onTicketChang
       )}
 
       {history.length > 0 && (
-        <ul className="ai-list">
+        <>
           <p className="ai-meta">Kết quả đã xử lý gần đây:</p>
-          {history.map((r) => (
-            <li key={r.id} className="ai-history-item">
-              <StatusBadge status={r.status} />
-              <span>
-                {r.result_type === 'CLASSIFICATION' ? 'Phân loại'
-                  : r.result_type === 'SUMMARY' ? 'Tóm tắt' : 'Nháp trả lời'}
-                {r.status === 'FAILED' && r.error_code ? ` — ${r.error_code}` : ''}
-                {r.status === 'EDITED' && r.reviewed_output?.category
-                  ? ` → ${labelOf(CATEGORY_LABELS, r.reviewed_output.category)}` : ''}
-              </span>
-              <span className="text-muted">{fmtDateTime(r.reviewed_at || r.requested_at)}</span>
-            </li>
-          ))}
-        </ul>
+          <ul className="ai-list">
+            {history.map((r) => (
+              <li key={r.id} className="ai-history-item">
+                <StatusBadge status={r.status} />
+                <span>
+                  {r.result_type === 'CLASSIFICATION' ? 'Phân loại'
+                    : r.result_type === 'SUMMARY' ? 'Tóm tắt' : 'Nháp trả lời'}
+                  {r.status === 'FAILED' && r.error_code ? ` — ${r.error_code}` : ''}
+                  {r.status === 'EDITED' && r.reviewed_output?.category
+                    ? ` → ${labelOf(CATEGORY_LABELS, r.reviewed_output.category)}` : ''}
+                </span>
+                <span className="text-muted">{fmtDateTime(r.reviewed_at || r.requested_at)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   );
