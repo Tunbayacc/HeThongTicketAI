@@ -305,3 +305,9 @@ async def _ensure_tickets(session, samples, team_by_name, user_by_email, sla_by_
                     },
                 )
             )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(run_seed())
