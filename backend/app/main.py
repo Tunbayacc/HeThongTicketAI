@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.ai import router as ai_router
 from app.api.auth import router as auth_router
 from app.api.health import router as health_router
 from app.api.public import router as public_router
@@ -41,6 +42,8 @@ def create_app() -> FastAPI:
 
     application.include_router(public_router, prefix="/api/public")
     application.include_router(tickets_router, prefix="/api")
+
+    application.include_router(ai_router, prefix="/api")
 
     # slowapi limiter bound to Settings.rate_limit_enabled (S2 public endpoints).
     init_rate_limit(application)

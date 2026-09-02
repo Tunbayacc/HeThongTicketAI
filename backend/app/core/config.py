@@ -49,10 +49,11 @@ class Settings(BaseSettings):
     # SLA (used from S2 onward: "due soon" badge threshold)
     sla_due_soon_minutes: int = 120
 
-    # Rate limiting (S2: slowapi over /public only)
+    # Rate limiting (S2: slowapi over /public only; S4: AI generation endpoints)
     rate_limit_enabled: bool = True
     public_create_rate: str = "20/hour"
     public_track_rate: str = "60/hour"
+    ai_rate: str = "30/minute"
 
     # Seed admin (created from Task 5 onward)
     seed_admin_email: str = "admin@example.com"

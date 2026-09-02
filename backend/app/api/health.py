@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Response, status
 from sqlalchemy import text
 
+from app.ai.providers import ProviderError, build_provider
 from app.core.config import get_settings
 from app.db.session import engine
 
@@ -61,6 +62,17 @@ async def ai_status(response: Response) -> dict:
         return {"status": "unavailable", "provider": settings.ai_provider,
                 "reason": "missing_gemini_api_key"}
     if settings.ai_provider == "gemini":
-        # Deep reachability probe is implemented in S4 (AI engine).
-        return {"status": "ok", "provider": settings.ai_provider, "probe": "deferred"}
+        # Real probe (S4): cheap, token-free model lookup. AI outage must not fail
+        # liveness/readiness, so degrade to a 503 with a clean error body.
+        try:
+            reachable = await build_provider().probe()
+        except ProviderError as exc:
+            response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+            return {"status": "unavailable", "provider": settings.ai_provider,
+                    "reason": exc.code}
+        if not reachable:
+            response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+            return {"status": "unavailable", "provider": settings.ai_provider,
+                    "reason": "unreachable"}
+        return {"status": "ok", "provider": settings.ai_provider, "probe": "ok"}
     return {"status": "ok", "provider": settings.ai_provider}
