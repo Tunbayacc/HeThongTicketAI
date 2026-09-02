@@ -297,3 +297,123 @@ async def test_public_comment_first_response_and_internal_hidden_from_track():
             assert exc.value.status_code == 404 and exc.value.error_code == "TICKET_NOT_FOUND"
     finally:
         await _cleanup_org(org, [ticket.id])
+
+
+async def test_assign_rejects_inactive_or_non_agent_assignee():
+    """FR-ASG-02/03: assignee must be an active Support Agent of the team."""
+    org = await _create_org()
+    # The org's manager is already the MANAGER-role member of team_a (no new
+    # membership row: (team_id, user_id) is unique), so the three bad assignees
+    # below exercise role + user-active + membership-active independently.
+    disabled = await _add_user(f"off.{_tag()}@example.com", "Agent Vô hiệu hóa", UserRole.AGENT.value)
+    await _add_membership(org["team_a"].id, disabled.id, TeamRole.MEMBER.value)
+    async with AsyncSessionLocal() as s:
+        # Flip the *user* inactive while keeping the membership row active: the
+        # S2 check (active membership only) must NOT let this through anymore.
+        u = await s.get(User, disabled.id)
+        u.is_active = False
+        await s.commit()
+    ticket = await _create_portal_ticket()
+    try:
+        for bad, label in (
+            (disabled.id, "inactive user"),
+            (org["manager"].id, "manager (role != AGENT)"),
+            (org["agent_b"].id, "agent outside the team"),
+        ):
+            async with AsyncSessionLocal() as s:
+                t = await s.get(Ticket, ticket.id)
+                with pytest.raises(AppError) as ei:
+                    await ticket_service.assign_ticket(
+                        s, ticket=t, actor=org["admin"], team_id=org["team_a"].id,
+                        assigned_to=bad, reason=None, expected_version=t.version)
+                assert ei.value.status_code == 400
+                assert ei.value.error_code == "ASSIGNEE_NOT_IN_TEAM", label
+        # A valid active AGENT of the team still succeeds.
+        async with AsyncSessionLocal() as s:
+            t = await s.get(Ticket, ticket.id)
+            out = await ticket_service.assign_ticket(
+                s, ticket=t, actor=org["admin"], team_id=org["team_a"].id,
+                assigned_to=org["agent_a"].id, reason="ok", expected_version=t.version)
+            assert out.assigned_to == org["agent_a"].id
+    finally:
+        await _remove_ticket(ticket.id)
+        await _cleanup_org(org, [])
+        # `disabled` is not in org["user_ids"], so clean its membership + row too.
+        async with AsyncSessionLocal() as s:
+            await s.execute(delete(TeamMember).where(TeamMember.user_id == disabled.id))
+            await s.execute(delete(User).where(User.id == disabled.id))
+            await s.commit()
+
+
+async def test_reassign_appends_history_and_preserves_snapshot():
+    """FR-ASG-08: changing assignee writes a NEW ASSIGNED row with old/new."""
+    org = await _create_org()
+    agent_c = await _add_user(f"agc.{_tag()}@example.com", "Agent C", UserRole.AGENT.value)
+    await _add_membership(org["team_a"].id, agent_c.id, TeamRole.MEMBER.value)
+    ticket = await _create_portal_ticket()
+    try:
+        async with AsyncSessionLocal() as s:
+            t = await s.get(Ticket, ticket.id)
+            await ticket_service.assign_ticket(
+                s, ticket=t, actor=org["manager"], team_id=org["team_a"].id,
+                assigned_to=org["agent_a"].id, reason="Gán lần đầu", expected_version=t.version)
+        async with AsyncSessionLocal() as s:
+            t = await s.get(Ticket, ticket.id)
+            await ticket_service.assign_ticket(
+                s, ticket=t, actor=org["manager"], team_id=org["team_a"].id,
+                assigned_to=agent_c.id, reason="Đổi người phụ trách", expected_version=t.version)
+        async with AsyncSessionLocal() as s:
+            t = await s.get(Ticket, ticket.id)
+            # t.history is lazy="selectin" (loaded on get); refresh keeps it fresh
+            # after the second commit. Sort chronologically — relationship order is
+            # not guaranteed.
+            await s.refresh(t, attribute_names=["history"])
+            rows = sorted((h for h in t.history if h.event_type == "ASSIGNED"),
+                          key=lambda h: (h.created_at, str(h.id)))
+            assert len(rows) == 2, "reassignment must append, never overwrite"
+            first, second = rows[0], rows[1]
+            # First ASSIGNED snapshot: from empty to agent_a.
+            assert first.old_value == {"team_id": None, "assigned_to": None}
+            assert first.new_value["assigned_to"] == str(org["agent_a"].id)
+            assert first.reason == "Gán lần đầu"
+            # Second ASSIGNED snapshot: agent_a -> agent_c (full history preserved).
+            assert second.old_value["assigned_to"] == str(org["agent_a"].id)
+            assert second.new_value["assigned_to"] == str(agent_c.id)
+            assert second.reason == "Đổi người phụ trách"
+            assert t.assigned_to == agent_c.id and t.version >= 3
+    finally:
+        await _remove_ticket(ticket.id)
+        await _cleanup_org(org, [])
+        # `agent_c` is not in org["user_ids"], so clean its membership + row too.
+        async with AsyncSessionLocal() as s:
+            await s.execute(delete(TeamMember).where(TeamMember.user_id == agent_c.id))
+            await s.execute(delete(User).where(User.id == agent_c.id))
+            await s.commit()
+
+
+async def test_assign_never_changes_status_on_resolved_ticket():
+    """FR-ASG-10: assignment is orthogonal to resolution/closure."""
+    org = await _create_org()
+    ticket = await _create_portal_ticket()
+    try:
+        async with AsyncSessionLocal() as s:
+            t = await s.get(Ticket, ticket.id)
+            # Reach RESOLVED through the legal state machine (OPEN -> IN_PROGRESS ->
+            # RESOLVED), then assign on top of it.
+            t = await ticket_service.change_status(
+                s, ticket=t, actor=org["admin"], target=TicketStatus.IN_PROGRESS.value,
+                reason=None, expected_version=t.version)
+            t = await ticket_service.change_status(
+                s, ticket=t, actor=org["admin"], target=TicketStatus.RESOLVED.value,
+                reason=None, expected_version=t.version)
+            assert t.status == TicketStatus.RESOLVED.value and t.resolved_at is not None
+        async with AsyncSessionLocal() as s:
+            t = await s.get(Ticket, ticket.id)
+            out = await ticket_service.assign_ticket(
+                s, ticket=t, actor=org["manager"], team_id=org["team_a"].id,
+                assigned_to=org["agent_a"].id, reason="gán sau khi resolve", expected_version=t.version)
+            assert out.status == TicketStatus.RESOLVED.value, "assign must not change status"
+            assert out.resolved_at is not None
+    finally:
+        await _remove_ticket(ticket.id)
+        await _cleanup_org(org, [])

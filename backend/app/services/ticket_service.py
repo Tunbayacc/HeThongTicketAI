@@ -21,6 +21,7 @@ from app.models.enums import AuditOutcome, CommentSource, TicketStatus, UserRole
 from app.models.team import SupportTeam, TeamMember
 from app.models.ticket import Attachment, Comment, SlaPolicy, Ticket, TicketHistory
 from app.models.user import User
+from app.services.assignment import is_valid_assignee
 from app.services.audit import write_audit
 from app.services.sla_service import extend_deadline
 from app.services.state_machine import can_transition, is_reopen
@@ -362,9 +363,12 @@ async def assign_ticket(session: AsyncSession, *, ticket: Ticket, actor: User, t
                 TeamMember.is_active.is_(True),
             )
         )
-        if membership.scalar_one_or_none() is None:
+        assignee_user = await session.get(User, assignee_uuid)
+        if membership.scalar_one_or_none() is None or assignee_user is None or not is_valid_assignee(
+            role=assignee_user.role, user_active=assignee_user.is_active, membership_active=True,
+        ):
             raise AppError(400, "ASSIGNEE_NOT_IN_TEAM",
-                           "Người được gán phải là thành viên đang hoạt động của nhóm đã chọn.")
+                           "Người được gán phải là Support Agent đang hoạt động trong nhóm đã chọn.")
 
     old_snapshot = {"team_id": str(ticket.team_id) if ticket.team_id else None,
                     "assigned_to": str(ticket.assigned_to) if ticket.assigned_to else None}
