@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
 from app.core.config import get_settings
+from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
 
@@ -32,6 +33,8 @@ def create_app() -> FastAPI:
     application.include_router(health_router, prefix="/health")
     application.include_router(health_router, prefix="/api/health")
 
+    # Standard JSON error body {error_code, message, details} on every HTTP error.
+    register_exception_handlers(application)
     return application
 
 
