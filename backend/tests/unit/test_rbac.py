@@ -20,8 +20,8 @@ def test_role_scope_feature_matrix():
     assert role_has_scope("AGENT", "tickets")
     assert role_has_scope("MANAGER", "tickets")
     assert role_has_scope("ADMIN", "tickets")
-    # dashboard scope (S5)
-    assert not role_has_scope("AGENT", "dashboard")
+    # dashboard scope (S5): agents see their own slice of the dashboard
+    assert role_has_scope("AGENT", "dashboard")
     assert role_has_scope("MANAGER", "dashboard")
     assert role_has_scope("ADMIN", "dashboard")
     # admin scope (S6)

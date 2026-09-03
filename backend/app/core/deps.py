@@ -23,7 +23,7 @@ _bearer = HTTPBearer(auto_error=False)
 # through role_has_scope before composing queries (NFR-SEC-06).
 _FEATURE_SCOPES: dict[str, set[str]] = {
     "tickets": {"AGENT", "MANAGER", "ADMIN"},
-    "dashboard": {"MANAGER", "ADMIN"},
+    "dashboard": {"AGENT", "MANAGER", "ADMIN"},
     "admin": {"ADMIN"},
 }
 
