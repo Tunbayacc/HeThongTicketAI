@@ -118,3 +118,28 @@ class SlaPolicyUpdate(BaseModel):
     effective_from: datetime | None = None
     effective_to: datetime | None = None
     is_active: bool | None = None
+
+
+# --- Audit Logs ---
+
+
+class AuditLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    id: uuid.UUID
+    actor_id: uuid.UUID | None
+    actor_name: str | None = None
+    action: str
+    entity_type: str
+    entity_id: uuid.UUID | None
+    outcome: str
+    metadata: dict | None = Field(default=None, alias="metadata_")
+    ip_address: str | None
+    created_at: datetime
+
+
+class PaginatedAuditLogs(BaseModel):
+    items: list[AuditLogOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int

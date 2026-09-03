@@ -1,3 +1,4 @@
+from datetime import date
 import uuid
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +8,7 @@ from app.db.session import get_session
 from app.models.user import User
 from app.schemas.admin import (
     MemberAdd,
+    PaginatedAuditLogs,
     PaginatedUsers,
     SlaPolicyCreate,
     SlaPolicyOut,
@@ -19,9 +21,12 @@ from app.schemas.admin import (
     UserOut,
     UserUpdate,
 )
-from app.services import sla_policy_service, team_service, user_service
+from app.services import audit_service, sla_policy_service, team_service, user_service
 
 router = APIRouter(tags=["admin"])
+
+
+# --- Users ---
 
 
 @router.get("/users", response_model=PaginatedUsers)
@@ -168,4 +173,31 @@ async def update_sla_policy(
 ):
     return await sla_policy_service.update_policy(
         session, actor_id=current_user.id, policy_id=policy_id, payload=payload
+    )
+
+
+# --- Audit Logs ---
+
+
+@router.get("/audit-logs", response_model=PaginatedAuditLogs)
+async def list_audit_logs(
+    actor_id: uuid.UUID | None = Query(default=None),
+    action: str | None = Query(default=None),
+    entity_type: str | None = Query(default=None),
+    from_date: date | None = Query(default=None, alias="from"),
+    to_date: date | None = Query(default=None, alias="to"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    _: User = Depends(require_roles("ADMIN")),
+    session: AsyncSession = Depends(get_session),
+):
+    return await audit_service.list_audit_logs(
+        session,
+        actor_id=actor_id,
+        action=action,
+        entity_type=entity_type,
+        from_date=from_date,
+        to_date=to_date,
+        page=page,
+        page_size=page_size,
     )
