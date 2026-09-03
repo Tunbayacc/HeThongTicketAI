@@ -1,0 +1,81 @@
+/* S5 dashboard (design spec 8.5 FR-REP): KPI cards, SLA strip, averages, trend SVG.
+   Vanilla + token-driven like tickets.css. Segment fills are scoped page vars so
+   the stacked chart re-themes with the rest of the app (light default + dark media). */
+
+.dashboard-page {
+  --seg-open: #a5b4fc;       /* indigo-300 */
+  --seg-in_progress: #67e8f9;/* cyan-300 */
+  --seg-pending: #fcd34d;    /* amber-300 */
+  --seg-resolved: #86efac;   /* green-300 */
+  --seg-closed: #cbd5e1;     /* slate-300 */
+  --chart-grid: var(--color-border);
+  --chart-text: var(--color-text-muted);
+}
+
+@media (prefers-color-scheme: dark) {
+  .dashboard-page {
+    --seg-open: #6366f1;       /* indigo-500 */
+    --seg-in_progress: #22d3ee;/* cyan-400 */
+    --seg-pending: #fbbf24;    /* amber-400 */
+    --seg-resolved: #4ade80;   /* green-400 */
+    --seg-closed: #94a3b8;     /* slate-400 */
+  }
+}
+
+.seg--open { fill: var(--seg-open); background: var(--seg-open); }
+.seg--in_progress { fill: var(--seg-in_progress); background: var(--seg-in_progress); }
+.seg--pending { fill: var(--seg-pending); background: var(--seg-pending); }
+.seg--resolved { fill: var(--seg-resolved); background: var(--seg-resolved); }
+.seg--closed { fill: var(--seg-closed); background: var(--seg-closed); }
+
+.dashboard-page .page-head { display: flex; align-items: baseline; gap: var(--space-4); }
+.dashboard-page h1 { margin: 0; font-size: var(--font-size-lg); }
+
+/* --- toolbar: presets + manual date range -------------------------------- */
+.dash-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; margin: var(--space-4) 0; }
+.dash-presets { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.preset { padding: var(--space-2) var(--space-3); background: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); cursor: pointer; }
+.preset:hover { background: var(--color-surface); }
+.preset.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.dash-date { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.dash-date input { padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); font-family: inherit; }
+
+/* --- KPI cards ------------------------------------------------------------ */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); }
+.kpi-card { display: flex; flex-direction: column; gap: var(--space-1); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); padding: var(--space-4) var(--space-4); box-shadow: var(--shadow-sm); }
+.kpi-value { font-size: 1.6rem; font-weight: 650; line-height: 1.1; }
+.kpi-label { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.kpi-card.kpi-over .kpi-value { color: var(--color-danger); }
+
+/* --- SLA strip ------------------------------------------------------------ */
+.sla-strip { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin: var(--space-4) 0; }
+.sla-chip { padding: var(--space-1) var(--space-3); border-radius: 999px; border: 1px solid var(--color-border); font-size: var(--font-size-sm); background: var(--color-surface); }
+.sla-chip--ok { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+.sla-chip--warn { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+.sla-chip--over { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+.sla-muted { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+@media (prefers-color-scheme: dark) {
+  .sla-chip--ok { background: #14532d; color: #bbf7d0; border-color: #166534; }
+  .sla-chip--warn { background: #78350f; color: #fde68a; border-color: #92400e; }
+  .sla-chip--over { background: #7f1d1d; color: #fecaca; border-color: #991b1b; }
+}
+
+/* --- averages ------------------------------------------------------------- */
+.avg-row { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); }
+.avg-cell { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); background: var(--color-bg); display: flex; flex-direction: column; gap: var(--space-1); min-width: 220px; }
+.avg-label { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.avg-value { font-size: var(--font-size-base); }
+
+/* --- trend chart card ------------------------------------------------------ */
+.chart-card { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); padding: var(--space-4) var(--space-6); margin-top: var(--space-2); }
+.chart-card h2 { margin: 0; font-size: var(--font-size-base); }
+.chart-sub { margin: var(--space-1) 0 var(--space-3); color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.trend-legend { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-2); font-size: var(--font-size-sm); color: var(--color-text); }
+.trend-legend-item { display: inline-flex; align-items: center; gap: var(--space-2); }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.trend-scroll { overflow-x: auto; }
+.trend-svg { display: block; width: 100%; height: auto; }
+.chart-grid { stroke: var(--chart-grid); stroke-width: 1; }
+.chart-axis { stroke: var(--color-text-muted); stroke-width: 1; }
+.chart-y { fill: var(--chart-text); font-size: 10px; }
+.chart-x { fill: var(--chart-text); font-size: 10px; }

@@ -1,11 +1,12 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute, RequireRoles } from './auth/guards.jsx';
-import { AdminLanding, ManagerLanding, RoleLandingRedirect } from './app/Landings.jsx';
+import { AdminLanding, RoleLandingRedirect } from './app/Landings.jsx';
 import AppShell from './app/AppShell.jsx';
 import PortalCreatePage from './pages/PortalCreatePage.jsx';
 import PortalTrackPage from './pages/PortalTrackPage.jsx';
 import HealthPage from './pages/HealthPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import DashboardPage from './pages/DashboardPage.jsx';
 import TicketsListPage from './pages/TicketsListPage.jsx';
 import TicketDetailPage from './pages/TicketDetailPage.jsx';
 
@@ -45,8 +46,8 @@ export default function App() {
           <Route
             path="dashboard"
             element={
-              <RequireRoles roles={['MANAGER', 'ADMIN']}>
-                <ManagerLanding />
+              <RequireRoles roles={['AGENT', 'MANAGER', 'ADMIN']}>
+                <DashboardPage />
               </RequireRoles>
             }
           />

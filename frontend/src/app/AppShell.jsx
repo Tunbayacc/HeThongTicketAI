@@ -5,7 +5,7 @@ import '../styles/auth.css';
 // Mirrors backend deps._FEATURE_SCOPES (Task 5).
 const NAV = [
   { to: '/app/tickets', label: 'Vé hỗ trợ', roles: ['AGENT', 'MANAGER', 'ADMIN'] },
-  { to: '/app/dashboard', label: 'Bảng điều khiển', roles: ['MANAGER', 'ADMIN'] },
+  { to: '/app/dashboard', label: 'Bảng điều khiển', roles: ['AGENT', 'MANAGER', 'ADMIN'] },
   { to: '/app/admin', label: 'Quản trị', roles: ['ADMIN'] },
 ];
 
