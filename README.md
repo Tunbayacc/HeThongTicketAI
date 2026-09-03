@@ -65,6 +65,23 @@ Từ S4, nhân viên/quản lý/admin có **AI hỗ trợ soạn nội dung** ng
 
 Demo nhanh: tạo một vé ở `/` với tiêu đề về "đăng nhập/mật khẩu" → đăng nhập `hung.manager@example.com` (mật khẩu seed ở bảng S1) → mở vé → khối "Trợ lý AI" → **Phân loại tự động** → **Duyệt đề xuất** → nhóm/ưu tiên được áp dụng (xem trong "Hoạt động"). Thử **Tóm tắt AI** và **Nháp trả lời AI** → "Đưa vào ô trả lời" → Gửi. Khi có key Gemini: đặt `AI_PROVIDER=gemini` + `GEMINI_API_KEY=...` trong `.env` rồi chạy lại stack. Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-02-s4-ai-engine.md`.
 
+### S5 — Bảng điều khiển & báo cáo
+
+Từ S5, nhân viên/quản lý/admin mở **"Bảng điều khiển"** tại `/app/dashboard` để xem KPI, SLA và xu hướng — mỗi vai trò thấy đúng phạm vi của mình (giống danh sách vé, FR-REP-11):
+
+| Vai trò | Phạm vi dữ liệu |
+|---|---|
+| Nhân viên | Vé được gán cho mình + vé của nhóm mình |
+| Quản lý | Vé các nhóm mình quản lý + vé chưa gán nhóm |
+| Quản trị viên | Toàn hệ thống |
+
+- **API**: `GET /api/dashboard/summary` (Tổng + theo trạng thái · SLA: trong hạn / sắp quá hạn / quá hạn · trung bình thời gian phản hồi đầu tiên và giải quyết) và `GET /api/dashboard/trends` (số vé tạo mới theo ngày/tháng, tách theo trạng thái). Cả hai nhận `?from=YYYY-MM-DD&to=YYYY-MM-DD`; bỏ trống = 30 ngày gần nhất; `from > to` trả về `422 VALIDATION_ERROR "Khoảng thời gian không hợp lệ."`.
+- **Mọi phép đếm chạy trong PostgreSQL** (GROUP BY theo ngày/tháng theo múi giờ báo cáo `Asia/Ho_Chi_Minh`), không tải vé về để đếm. Backend luôn trả về **đủ các bucket** trong khoảng đã chọn (bucket rỗng có 5 trạng thái = 0), nên biểu đồ không bị "lỗ hổng".
+- **Trên giao diện**: nút nhanh 7/30/90/180/365 ngày (mặc định 30) + chọn ngày thủ công; hàng thẻ KPI; dải SLA; hàng trung bình — khi chưa có dữ liệu hiển thị **"Chưa có dữ liệu"** (giá trị `null`); biểu đồ cột chồng theo trạng thái. Lưu ý biểu đồ ghi chú rõ số vé được tính **theo trạng thái hiện tại** — không phải trạng thái tại thời điểm tạo.
+- **Thông số hiệu năng (NFR-PER-06, P95 ≤ 5 s với 12 tháng dữ liệu) chưa được kiểm chứng**: hiện chỉ có smoke test chức năng (functional), chưa có performance test — đây **không phải** bằng chứng về NFR.
+
+Demo nhanh: đăng nhập `admin@example.com` (mật khẩu seed ở bảng S1), hoặc `hung.manager@example.com` / `lan.agent@example.com` (mật khẩu seed ở bảng S1) → mở **"Bảng điều khiển"** → đổi preset khoảng thời gian hoặc chọn ngày → xem KPI/SLA/trung bình và biểu đồ xu hướng theo phạm vi của vai trò. Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-03-s5-dashboard.md`.
+
 ## Chạy backend khi đang phát triển
 
 - DB: `docker compose up -d db`

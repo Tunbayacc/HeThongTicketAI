@@ -108,7 +108,7 @@ Notes: `avg_*` are whole seconds — rounded with `int(round(value))` — or `nu
 **Interfaces:**
 - Produces: `ticket_service.build_ticket_scope_conditions(session, *, user) -> list`, `Settings.reporting_timezone`, `dashboard_logic.resolve_window(...)`.
 
-- [ ] **Step 1: Write the failing unit tests for `resolve_window`** (day boundaries in Asia/Ho_Chi_Minh → UTC; default 30-day window; `from > to` raises; `to` clamped when in the future).
+- [x] **Step 1: Write the failing unit tests for `resolve_window`** (day boundaries in Asia/Ho_Chi_Minh → UTC; default 30-day window; `from > to` raises; `to` clamped when in the future).
 
 ```python
 # backend/tests/unit/test_dashboard_logic.py
@@ -152,19 +152,19 @@ def test_resolve_window_clamps_future_to_today():
     assert t == datetime(2026, 8, 10, 17, 0, tzinfo=UTC)  # clamped to local today+1
 ```
 
-- [ ] **Step 2: Run them to verify they fail.**
+- [x] **Step 2: Run them to verify they fail.**
 
 Run: `cd backend && .venv/Scripts/python -m pytest tests/unit/test_dashboard_logic.py -q`
 Expected: FAIL — `ModuleNotFoundError`/`AttributeError: module 'app.services' has no attribute 'dashboard_logic'`.
 
-- [ ] **Step 3: Add `reporting_timezone` to Settings** (`backend/app/core/config.py`, near `sla_due_soon_minutes:50`).
+- [x] **Step 3: Add `reporting_timezone` to Settings** (`backend/app/core/config.py`, near `sla_due_soon_minutes:50`).
 
 ```python
     # Reporting (S5 dashboard): day boundaries are resolved in this IANA zone.
     reporting_timezone: str = "Asia/Ho_Chi_Minh"
 ```
 
-- [ ] **Step 4: Create `backend/app/services/dashboard_logic.py`** implementing the resolver. Use `zoneinfo.ZoneInfo` (stdlib). Clamp `to` to today only when a caller-supplied `to` is later than today; when both are None use `to = today`, `from = today - (default_days - 1)`.
+- [x] **Step 4: Create `backend/app/services/dashboard_logic.py`** implementing the resolver. Use `zoneinfo.ZoneInfo` (stdlib). Clamp `to` to today only when a caller-supplied `to` is later than today; when both are None use `to = today`, `from = today - (default_days - 1)`.
 
 ```python
 """Pure dashboard math: reporting-window resolution and granularity.
@@ -207,12 +207,12 @@ def granularity_for(utc_from: datetime, utc_to_excl: datetime) -> str:
     return "day" if (utc_to_excl - utc_from).days <= 62 else "month"
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass.**
+- [x] **Step 5: Run the tests to verify they pass.**
 
 Run: `cd backend && .venv/Scripts/python -m pytest tests/unit/test_dashboard_logic.py -q`
 Expected: PASS (4 passed).
 
-- [ ] **Step 6: Add the public scope wrapper in `ticket_service.py`** (immediately below `_scope_conds`, `:81`) and refactor `list_tickets` to use it.
+- [x] **Step 6: Add the public scope wrapper in `ticket_service.py`** (immediately below `_scope_conds`, `:81`) and refactor `list_tickets` to use it.
 
 ```python
 async def build_ticket_scope_conditions(session: AsyncSession, *, user: User) -> list:
@@ -232,12 +232,12 @@ Replace the first two lines of `list_tickets` (`:145-146`):
     conds = await build_ticket_scope_conditions(session, user=user)
 ```
 
-- [ ] **Step 7: Run the whole scope-relevant suites to prove behavior is unchanged.**
+- [x] **Step 7: Run the whole scope-relevant suites to prove behavior is unchanged.**
 
 Run: `cd backend && .venv/Scripts/python -m pytest tests/unit -q && INTEGRATION=1 DATABASE_URL="postgresql+asyncpg://ai_support:ai_support@localhost:5433/ai_support" RATE_LIMIT_ENABLED=false .venv/Scripts/python -m pytest tests/integration/test_ticket_service.py tests/integration/test_http_tickets.py -q`
 Expected: PASS (existing scoping/listing tests green — wrapper is behavior-identical).
 
-- [ ] **Step 8: Commit.**
+- [x] **Step 8: Commit.**
 
 ```bash
 git add backend/app/services/ticket_service.py backend/app/core/config.py backend/app/services/dashboard_logic.py backend/tests/unit/test_dashboard_logic.py
@@ -255,7 +255,7 @@ git commit -m "feat(s5): ticket scope public wrapper + reporting timezone + pure
 - Consumes: `ticket_service.build_ticket_scope_conditions`, `dashboard_logic.resolve_window`, `sla_service.deadline_state` + `extend_deadline`.
 - Produces: `dashboard_service.summary(session, *, user, from_date, to_date) -> dict` and `dashboard_service.trends(...) -> dict` matching the JSON in the header.
 
-- [ ] **Step 1: Add `sla_state()` to `dashboard_logic.py`** with unit tests first (same file as Task 1). Algorithm (verbatim contract):
+- [x] **Step 1: Add `sla_state()` to `dashboard_logic.py`** with unit tests first (same file as Task 1). Algorithm (verbatim contract):
 
 ```python
 def sla_state(*, status, first_response_at, first_response_due_at, resolution_due_at,
@@ -287,9 +287,9 @@ def sla_state(*, status, first_response_at, first_response_due_at, resolution_du
 
 Unit tests for `sla_state` (`test_dashboard_logic.py`): (a) responded-OPEN → resolution bucket; (b) un-responded OPEN with only `first_response_due_at` past → OVERDUE; (c) `RESOLVED`/`CLOSED`/no-deadline → None (untracked); (d) DUE_SOON boundary at exactly `due_soon_minutes`; (e) paused-PENDING on `pause_on_pending=true` with an open pending window is ON_TIME though the persisted deadline is in the past, and the same ticket with `pause_on_pending=false` is OVERDUE. Add a unit test that the three buckets are never produced for the same input (single return value).
 
-- [ ] **Step 2: Add `bucket_labels` (write its unit tests first, same file).** Signature per the Interfaces block; iterate local dates (day granularity) or first-of-month steps (month granularity) from `utc_from.astimezone(tz).date()` through `(utc_to_excl − 1 µs).astimezone(tz).date()`, yielding `date.strftime("%Y-%m-%d")` / `"%Y-%m"`. Tests: a 3-local-day window → 3 labels ending on the `to` day; a month window spanning e.g. 2026-07-29→2026-08-31 → labels `["2026-07","2026-08"]`; a zero-window safety (never returns empty — caller passes from<to so the span has ≥1 day). Assert the labels are **calendar** years (a window around 2026-12-29→2027-01-02 must emit `2026-12` then `2027-01` for month mode, not ISO-week years).
+- [x] **Step 2: Add `bucket_labels` (write its unit tests first, same file).** Signature per the Interfaces block; iterate local dates (day granularity) or first-of-month steps (month granularity) from `utc_from.astimezone(tz).date()` through `(utc_to_excl − 1 µs).astimezone(tz).date()`, yielding `date.strftime("%Y-%m-%d")` / `"%Y-%m"`. Tests: a 3-local-day window → 3 labels ending on the `to` day; a month window spanning e.g. 2026-07-29→2026-08-31 → labels `["2026-07","2026-08"]`; a zero-window safety (never returns empty — caller passes from<to so the span has ≥1 day). Assert the labels are **calendar** years (a window around 2026-12-29→2027-01-02 must emit `2026-12` then `2027-01` for month mode, not ISO-week years).
 
-- [ ] **Step 3: Write the integration tests for `summary` and `trends`** (`tests/integration/test_dashboard.py`), mirroring the local throwaway-org helper pattern already used by `tests/integration/test_ticket_service.py:69-124` (`_create_org`, `_create_portal_ticket`, `_cleanup_org`). Tests, each traced to a requirement in Task 5's matrix:
+- [x] **Step 3: Write the integration tests for `summary` and `trends`** (`tests/integration/test_dashboard.py`), mirroring the local throwaway-org helper pattern already used by `tests/integration/test_ticket_service.py:69-124` (`_create_org`, `_create_portal_ticket`, `_cleanup_org`). Tests, each traced to a requirement in Task 5's matrix:
   - `test_summary_counts_match_reference_sql_by_role` (FR-REP-01/07/08/09/11): for admin/manager/agent build org + tickets (some assigned to team A/B, some unassigned) in the window; assert `summary()["kpi"]["total"]` and each `by_status` equal a raw `select(status, count)` run under the SAME `build_ticket_scope_conditions` conds. This checks SQL correctness; **it is NOT the scope-parity proof** (see the direct list test below).
   - `test_summary_matches_list_ticket_totals` (FR-REP-11, direct parity): build a dataset where **every** ticket lies inside the window; for each of the 5 statuses call the Ticket List function (`ticket_service.list_tickets(...)`, same `user`, matching status filter, page_size large enough to hold the fixture) and read its returned total; assert each equals `summary()["kpi"]["by_status"][status]` and the sum equals `summary()["kpi"]["total"]`. This proves Dashboard and Ticket List share the exact scope + population on real rows — the same conds alone would not.
   - `test_manager_sees_no_team_pool_like_list_does` (FR-REP-07/11): a manager must count the unassigned ticket (intake rule) and must NOT count team B tickets — parity with the direct list result for the same user.
@@ -298,8 +298,8 @@ Unit tests for `sla_state` (`test_dashboard_logic.py`): (a) responded-OPEN → r
   - `test_average_null_when_no_data` (FR-REP-05): a window containing no responded/resolved tickets → `avg_first_response_seconds is None` and `avg_resolution_seconds is None`; adding one resolved ticket → non-null resolution. Assert the rounded form: a fractional avg is returned as `int(round(value))`.
   - `test_window_filters_by_created_at` (FR-REP-06): a ticket created before `from` (local) is excluded; one created on the `to` day (local) is included (boundary correctness from Task 1).
   - `test_trends_sql_buckets_cover_whole_window` (FR-REP-06): create N tickets with known `created_at` across two local days + a third outside; assert trends returns **one bucket for every day of the resolved range** (empty days included, all five statuses 0) and the populated days carry the exact cohort split.
-- [ ] **Step 4: Run them to verify they fail** (no service yet). Expected: import error.
-- [ ] **Step 5: Implement `dashboard_service`.** Both functions share a private `_windowed_conds(session, user, from_date, to_date)` that returns `(conds, utc_from, utc_to_excl)`, where `conds = await build_ticket_scope_conditions(...)` then `conds += [Ticket.created_at >= utc_from, Ticket.created_at < utc_to_excl]`. Compute `kpi` from `select(Ticket.status, func.count(Ticket.id)).where(*conds).group_by(Ticket.status)` (default every status to 0). Compute averages from two aggregates over the same conds with `first_response_at.is_not(None)` / `resolved_at.is_not(None)` via `func.avg(func.extract("epoch", Ticket.first_response_at - Ticket.created_at))`, then return `int(round(value))` when not `None`. Compute SLA in Python: fetch tracked candidates (`status.in_(OPEN, IN_PROGRESS, PENDING)` + `sla_policy_id.is_not(None)`), join `SlaPolicy.pause_on_pending`; for PENDING+pause rows fetch `pending_since` with one grouped query over `TicketHistory` (`event_type == "STATUS_CHANGED"`, `new_value == "PENDING"`, max `created_at`) mirroring `_pending_since` (`ticket_service.py:110-116`), then classify each row with `sla_state`. (SLA is the one Python loop — it is bounded to open tracked candidates, never the whole ticket set.) **`trends` counts in PostgreSQL** — no ticket-row download to count:
+- [x] **Step 4: Run them to verify they fail** (no service yet). Expected: import error.
+- [x] **Step 5: Implement `dashboard_service`.** Both functions share a private `_windowed_conds(session, user, from_date, to_date)` that returns `(conds, utc_from, utc_to_excl)`, where `conds = await build_ticket_scope_conditions(...)` then `conds += [Ticket.created_at >= utc_from, Ticket.created_at < utc_to_excl]`. Compute `kpi` from `select(Ticket.status, func.count(Ticket.id)).where(*conds).group_by(Ticket.status)` (default every status to 0). Compute averages from two aggregates over the same conds with `first_response_at.is_not(None)` / `resolved_at.is_not(None)` via `func.avg(func.extract("epoch", Ticket.first_response_at - Ticket.created_at))`, then return `int(round(value))` when not `None`. Compute SLA in Python: fetch tracked candidates (`status.in_(OPEN, IN_PROGRESS, PENDING)` + `sla_policy_id.is_not(None)`), join `SlaPolicy.pause_on_pending`; for PENDING+pause rows fetch `pending_since` with one grouped query over `TicketHistory` (`event_type == "STATUS_CHANGED"`, `new_value == "PENDING"`, max `created_at`) mirroring `_pending_since` (`ticket_service.py:110-116`), then classify each row with `sla_state`. (SLA is the one Python loop — it is bounded to open tracked candidates, never the whole ticket set.) **`trends` counts in PostgreSQL** — no ticket-row download to count:
 
 ```python
 label = func.to_char(
@@ -314,8 +314,8 @@ rows = (await session.execute(
 ```
 
   then in Python only: start from `bucket_labels(utc_from, utc_to_excl, tz_name=tz, granularity=gran)`, initialize each label's five status keys to 0, overlay `rows` (indexed by label+status), and emit the ordered list — **every** day/month in the resolved range is present even when it has zero rows. Read `tz` and `due_soon` from `get_settings().reporting_timezone` / `.sla_due_soon_minutes`.
-- [ ] **Step 6: Run the integration suite to verify it passes** (Task 5 command). Expected: PASS (≈6 new integration tests).
-- [ ] **Step 7: Commit.**
+- [x] **Step 6: Run the integration suite to verify it passes** (Task 5 command). Expected: PASS (≈6 new integration tests).
+- [x] **Step 7: Commit.**
 
 ```bash
 git add backend/app/services/dashboard_logic.py backend/app/services/dashboard_service.py backend/tests/integration/test_dashboard.py
@@ -332,8 +332,8 @@ git commit -m "feat(s5): dashboard summary/trends service with role scope, SLA b
 - Consumes: Task 1 + Task 2 function names; `require_roles` (`deps.py:65-72`), `get_session`.
 - Produces: `GET /api/dashboard/summary`, `GET /api/dashboard/trends` (HTTP, staff-all), response models `SummaryResponse` / `TrendsResponse`.
 
-- [ ] **Step 1: Update `_FEATURE_SCOPES["dashboard"]`** to `{"AGENT", "MANAGER", "ADMIN"}` (`deps.py:26`).
-- [ ] **Step 2: Write `schemas/dashboard.py`** mirroring the header JSON exactly (wire keys stay `from`/`to`; Python names never collide). Pydantic v2 `BaseModel` like `schemas/ticket.py:10-35`, plus the alias config:
+- [x] **Step 1: Update `_FEATURE_SCOPES["dashboard"]`** to `{"AGENT", "MANAGER", "ADMIN"}` (`deps.py:26`).
+- [x] **Step 2: Write `schemas/dashboard.py`** mirroring the header JSON exactly (wire keys stay `from`/`to`; Python names never collide). Pydantic v2 `BaseModel` like `schemas/ticket.py:10-35`, plus the alias config:
 
 ```python
 from datetime import date
@@ -380,21 +380,21 @@ class TrendsResponse(BaseModel):
     range: RangeOut
     buckets: list[TrendBucketOut]
 ```
-- [ ] **Step 3: Write the HTTP tests first** (`tests/integration/test_http_dashboard.py`, mirror `tests/integration/test_http_ai.py`'s `httpx.ASGITransport` client + `_token()` helper):
+- [x] **Step 3: Write the HTTP tests first** (`tests/integration/test_http_dashboard.py`, mirror `tests/integration/test_http_ai.py`'s `httpx.ASGITransport` client + `_token()` helper):
   - `test_dashboard_requires_auth`: no bearer → 401.
   - `test_dashboard_denied_non_staff_roles`: login a seeded user of each role; a customer-role/nonexistent feature must not exist — assert the 3 staff roles pass (200) and that a 4th non-staff token (none exists) is out of scope; instead assert `AGENT/MANAGER/ADMIN` each reach both endpoints with 200.
   - `test_summary_and_trends_shape` (admin): 200; body matches the response-model contract (all keys, 0-filled statuses).
   - `test_http_validation_envelope_for_both_bad_ranges`: (a) inverted range `?from=2026-09-09&to=2026-09-01` → 422 with our `AppError` envelope `{"error_code": "VALIDATION_ERROR", "message": "Khoảng thời gian không hợp lệ.", "details": null}`; (b) malformed `?from=not-a-date` → 422 whose body is whatever the **existing shared** `register_exception_handlers` produces for `RequestValidationError` (read `app/core/errors.py` to pin the exact `error_code`/`details` shape before asserting). The two cases may have different `details`; both must carry the repo's standard envelope keys — never a Dashboard-only error format.
   - `test_http_summary_exact_counts_per_role`: seed a fixed dataset whose per-role expected totals are computed up front from the fixture; assert admin/manager/agent each return the **exact** expected `kpi.total` (no `admin ≥ manager ≥ agent` inequality — the scopes are not subset-related on arbitrary data, so only fixture-exact counts are meaningful).
-- [ ] **Step 4: Run them to verify they fail** (no router yet).
-- [ ] **Step 5: Implement `api/dashboard.py`.** `router = APIRouter(tags=["dashboard"])`; `@router.get("/dashboard/summary", response_model=SummaryResponse)` and `@router.get("/dashboard/trends", response_model=TrendsResponse)`. Declare the query params with aliases (never a Python identifier named `from`): `from_date: date | None = Query(default=None, alias="from")`, `to_date: date | None = Query(default=None, alias="to")`. FastAPI coerces `YYYY-MM-DD`; a malformed string 422s through the **shared** `RequestValidationError` handler in `app/core/errors.py` — no new handler. Call `dashboard_service.summary(session, user=..., from_date=from_date, to_date=to_date)`; catch `ValueError` from `resolve_window` → `AppError(422, "VALIDATION_ERROR", "Khoảng thời gian không hợp lệ.")`. Wrap `require_roles("AGENT", "MANAGER", "ADMIN")`. No rate limit.
-- [ ] **Step 6: Register the router in `main.py`** (`from app.api.dashboard import router as dashboard_router` and `application.include_router(dashboard_router, prefix="/api")` after `ai_router`, mirroring `main.py:46`).
-- [ ] **Step 7: Run the HTTP suite to verify it passes.**
+- [x] **Step 4: Run them to verify they fail** (no router yet).
+- [x] **Step 5: Implement `api/dashboard.py`.** `router = APIRouter(tags=["dashboard"])`; `@router.get("/dashboard/summary", response_model=SummaryResponse)` and `@router.get("/dashboard/trends", response_model=TrendsResponse)`. Declare the query params with aliases (never a Python identifier named `from`): `from_date: date | None = Query(default=None, alias="from")`, `to_date: date | None = Query(default=None, alias="to")`. FastAPI coerces `YYYY-MM-DD`; a malformed string 422s through the **shared** `RequestValidationError` handler in `app/core/errors.py` — no new handler. Call `dashboard_service.summary(session, user=..., from_date=from_date, to_date=to_date)`; catch `ValueError` from `resolve_window` → `AppError(422, "VALIDATION_ERROR", "Khoảng thời gian không hợp lệ.")`. Wrap `require_roles("AGENT", "MANAGER", "ADMIN")`. No rate limit.
+- [x] **Step 6: Register the router in `main.py`** (`from app.api.dashboard import router as dashboard_router` and `application.include_router(dashboard_router, prefix="/api")` after `ai_router`, mirroring `main.py:46`).
+- [x] **Step 7: Run the HTTP suite to verify it passes.**
 
 Run: `cd backend && INTEGRATION=1 DATABASE_URL="postgresql+asyncpg://ai_support:ai_support@localhost:5433/ai_support" RATE_LIMIT_ENABLED=false .venv/Scripts/python -m pytest tests/integration -q`
 Expected: PASS (new HTTP tests ≈5; whole folder green).
 
-- [ ] **Step 8: Commit.**
+- [x] **Step 8: Commit.**
 
 ```bash
 git add backend/app/schemas/dashboard.py backend/app/api/dashboard.py backend/app/core/deps.py backend/app/main.py backend/tests/integration/test_http_dashboard.py
@@ -411,10 +411,10 @@ git commit -m "feat(s5): dashboard HTTP API (summary/trends), AGENT in dashboard
 - Consumes: `api.get` from `frontend/src/api/client.js`; `STATUS_LABELS` from `lib/labels.js`; CSS tokens (`tokens.css`); the two response shapes above.
 - Produces: `<DashboardPage/>` used by route `/app/dashboard`.
 
-- [ ] **Step 1: Write the route + guard + nav edits first.**
+- [x] **Step 1: Write the route + guard + nav edits first.**
   - `App.jsx:45-52`: change `roles={['MANAGER','ADMIN']}` → `roles={['AGENT','MANAGER','ADMIN']}` and `element={<ManagerLanding />}` → `element={<DashboardPage />}` (add the import). Ensure no other route still imports `ManagerLanding`; delete the now-unrouted `ManagerLanding` export in `Landings.jsx` (keep `AdminLanding` + `Placeholder` for `/app/admin`, S6).
   - `AppShell.jsx:6-10`: NAV dashboard row roles → `['AGENT','MANAGER','ADMIN']` so an AGENT sees the "Bảng điều khiển" item.
-- [ ] **Step 2: Write `DashboardPage.jsx`** with a single `load()` that fires **both** fetches together and renders the pair atomically, following the fetch/loading/error/empty conventions of `TicketsListPage.jsx:30-66`. Toolbar = preset buttons (7/30/90/180/365, default 30; no "Tất cả") plus two `<input type="date">` for start/end; the same date pair drives both calls. Presets compute `to = today`, `from = to − (N−1)` using **local** (browser) dates. Local-date formatting must use calendar getters, never UTC slicing:
+- [x] **Step 2: Write `DashboardPage.jsx`** with a single `load()` that fires **both** fetches together and renders the pair atomically, following the fetch/loading/error/empty conventions of `TicketsListPage.jsx:30-66`. Toolbar = preset buttons (7/30/90/180/365, default 30; no "Tất cả") plus two `<input type="date">` for start/end; the same date pair drives both calls. Presets compute `to = today`, `from = to − (N−1)` using **local** (browser) dates. Local-date formatting must use calendar getters, never UTC slicing:
 ```js
 const pad = (n) => String(n).padStart(2, '0');
 const fmtLocal = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -422,15 +422,15 @@ const fmtLocal = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.get
 ```
   Concurrency guard — a fast preset switch must not let a stale response overwrite a newer one. Keep a module/render-level `loadSeq` counter; `const seq = ++loadSeq` before fetching; after each await, `if (seq !== loadSeq) return;` before `setState` (or abort the previous request via an `AbortController` and re-create it per load; if `api.get` does not accept a signal, the sequence guard alone is enough). Fetch with `Promise.all` and set both summary + trends in one state update.
   Sections: KPI card row (Tổng · Mở · Đang xử lý · Chờ bổ sung thông tin · Đã giải quyết/Đóng · Quá hạn SLA); a compact SLA strip (Trong hạn / Sắp quá hạn / Quá hạn / đang theo dõi); an averages row rendering "Chưa có dữ liệu" whenever the API value is `null`; and the trend chart card titled with a note that counts are "theo trạng thái hiện tại". **Empty state**: when `summary.kpi.total === 0` show "Chưa có dữ liệu trong khoảng thời gian này" in the cards/chart area. The page renders backend buckets verbatim — it never adds a bucket it did not receive nor a status key the API omitted. Handle the 422 from the backend for an inverted range by showing the error message inline.
-- [ ] **Step 3: Write `DashboardTrendChart.jsx`** — pure hand-drawn stacked SVG: props `{buckets, granularity, labels}`; map each bucket to a `<rect>` stack of five status segments using status colors from tokens (add CSS classes in `dashboard.css`), x-axis ticks (day labels for ≤~14 buckets, else sparse), y-axis gridlines from the max count, `<title>`/aria on groups, and `viewBox` scaling so the page never scrolls horizontally (`overflow-x: auto` wrapper). No external chart/dependency.
-- [ ] **Step 4: Write `dashboard.css`** reusing tokens (`--color-surface/border/text/...`, status palette like `tickets.css:17-28`), adding explicit light + dark token blocks and `.kpi-card`, `.kpi-value`, `.kpi-label`, `.sla-chip`, `.avg-cell`, `.chart-card`, `.trend-legend` classes. Add `import '../styles/dashboard.css'` at the top of `DashboardPage.jsx`.
-- [ ] **Step 5: Build to verify no syntax/route errors.**
+- [x] **Step 3: Write `DashboardTrendChart.jsx`** — pure hand-drawn stacked SVG: props `{buckets, granularity, labels}`; map each bucket to a `<rect>` stack of five status segments using status colors from tokens (add CSS classes in `dashboard.css`), x-axis ticks (day labels for ≤~14 buckets, else sparse), y-axis gridlines from the max count, `<title>`/aria on groups, and `viewBox` scaling so the page never scrolls horizontally (`overflow-x: auto` wrapper). No external chart/dependency.
+- [x] **Step 4: Write `dashboard.css`** reusing tokens (`--color-surface/border/text/...`, status palette like `tickets.css:17-28`), adding explicit light + dark token blocks and `.kpi-card`, `.kpi-value`, `.kpi-label`, `.sla-chip`, `.avg-cell`, `.chart-card`, `.trend-legend` classes. Add `import '../styles/dashboard.css'` at the top of `DashboardPage.jsx`.
+- [x] **Step 5: Build to verify no syntax/route errors.**
 
 Run: `cd frontend && npm run build`
 Expected: build succeeds.
 
-- [ ] **Step 6: Manual smoke via the run skill (live stack on :8080 or Vite :5173).** Login as `admin@example.com` → open "Bảng điều khiển"; then `hung.manager@example.com`; then `lan.agent@example.com` — each sees the page with scoped numbers and 2-theme rendering.
-- [ ] **Step 7: Commit.**
+- [x] **Step 6: Manual smoke via the run skill (live stack on :8080 or Vite :5173).** Login as `admin@example.com` → open "Bảng điều khiển"; then `hung.manager@example.com`; then `lan.agent@example.com` — each sees the page with scoped numbers and 2-theme rendering.
+- [x] **Step 7: Commit.**
 
 ```bash
 git add frontend/src/pages/DashboardPage.jsx frontend/src/components/DashboardTrendChart.jsx frontend/src/styles/dashboard.css frontend/src/App.jsx frontend/src/app/AppShell.jsx frontend/src/app/Landings.jsx
@@ -442,8 +442,8 @@ git commit -m "feat(s5): dashboard page — KPIs, SLA strip, averages, SVG statu
 **Files:**
 - Modify: `README.md` (add S5 block after the S4 block, ~`README.md:66`), this plan file (check off tasks), and `docs/superpowers/specs/2026-09-02-ai-customer-support-design.md` only if a decision contradicts it (it should not).
 
-- [ ] **Step 1: Add the S5 README demo block** (Vietnamese), mirroring the S4 block's style: endpoints summary, role scope table (Agent = bản thân + nhóm; Manager = nhóm quản lý + vé chưa gán nhóm; Admin = toàn hệ thống), "theo trạng thái hiện tại" note on the chart, avg null → "Chưa có dữ liệu", demo quick-start (login admin / manager / agent → open Bảng điều khiển). Add one honest line: NFR-PER-06 (P95 ≤ 5 s/12 tháng) **chưa có performance test** — bản demo chỉ là functional smoke test, không phải bằng chứng về NFR.
-- [ ] **Step 2: Verify the full gate set.**
+- [x] **Step 1: Add the S5 README demo block** (Vietnamese), mirroring the S4 block's style: endpoints summary, role scope table (Agent = bản thân + nhóm; Manager = nhóm quản lý + vé chưa gán nhóm; Admin = toàn hệ thống), "theo trạng thái hiện tại" note on the chart, avg null → "Chưa có dữ liệu", demo quick-start (login admin / manager / agent → open Bảng điều khiển). Add one honest line: NFR-PER-06 (P95 ≤ 5 s/12 tháng) **chưa có performance test** — bản demo chỉ là functional smoke test, không phải bằng chứng về NFR.
+- [x] **Step 2: Verify the full gate set.**
 
 Run (from `backend`): `docker compose exec backend alembic check` — Expected: `No new upgrade operations detected.` (no migration added).
 Run: `cd backend && .venv/Scripts/python -m pytest tests/unit -q` — Expected: PASS (unit 84 + Task 1/2 unit tests).
@@ -452,7 +452,7 @@ Run: `cd frontend && npm run build` — Expected: succeeds.
 Run live demo on the running demo stack (:8080) — login as admin / hung.manager / lan.agent and confirm scoped numbers, "Chưa có dữ liệu" when no resolved ticket in window, and 2-theme chart.
 Perf: **no official P95 result** — the gate above is a functional smoke test only; do NOT write "NFR-PER-06 satisfied" anywhere (report line: "chưa xác nhận P95 chính thức — cần performance test riêng").
 
-- [ ] **Step 3: FR-REP traceability (fill the matrix, one check per line).**
+- [x] **Step 3: FR-REP traceability (fill the matrix, one check per line).**
   | Req | Where satisfied | Test |
   |---|---|---|
   | FR-REP-01 total-by-scope | summary.kpi.total | summary-reference-SQL & http scope tests |
@@ -464,7 +464,7 @@ Perf: **no official P95 result** — the gate above is a functional smoke test o
   | FR-REP-08 agent scope | scope wrapper (agent) | agent reference-SQL test |
   | FR-REP-09 admin whole system | scope wrapper (admin=[]) | admin reference-SQL test |
   | FR-REP-11 same defs as detail | build_ticket_scope_conditions single source | every reference-SQL test uses the same wrapper |
-- [ ] **Step 4: Commit README + plan check-offs.**
+- [x] **Step 4: Commit README + plan check-offs.**
 
 ```bash
 git add README.md docs/superpowers/plans/2026-09-03-s5-dashboard.md
