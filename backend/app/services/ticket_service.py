@@ -81,6 +81,17 @@ def _scope_conds(user: User, view_ids: list[uuid.UUID] | None):
     return [or_(*conds)]
 
 
+async def build_ticket_scope_conditions(session: AsyncSession, *, user: User) -> list:
+    """Public scope builder for list AND dashboard (FR-REP-11): identical SQL.
+
+    Wraps the private _view_team_ids + _scope_conds so dashboard_service reuses
+    the exact Ticket List scope (incl. the MANAGER no-team intake rule) without
+    importing _-private helpers or duplicating logic.
+    """
+    view_ids = await _view_team_ids(session, user)
+    return _scope_conds(user, view_ids)
+
+
 async def get_scoped_ticket(session: AsyncSession, *, user: User, ticket_id) -> Ticket:
     """Fetch one ticket the user may view; unknown OR out-of-scope -> 404 (anti-leak)."""
     try:
@@ -142,8 +153,7 @@ def _row_to_item(row) -> dict:
 async def list_tickets(session: AsyncSession, *, user: User, page: int, page_size: int,
                        status: str | None = None, q: str | None = None, assigned_to_me: bool = False,
                        team_id: str | None = None):
-    view_ids = await _view_team_ids(session, user)
-    conds = _scope_conds(user, view_ids)
+    conds = await build_ticket_scope_conditions(session, user=user)
     if status:
         conds.append(Ticket.status == status)
     if q:

@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     # SLA (used from S2 onward: "due soon" badge threshold)
     sla_due_soon_minutes: int = 120
 
+    # Reporting (S5 dashboard): day boundaries are resolved in this IANA zone.
+    reporting_timezone: str = "Asia/Ho_Chi_Minh"
+
     # Rate limiting (S2: slowapi over /public only; S4: AI generation endpoints)
     rate_limit_enabled: bool = True
     public_create_rate: str = "20/hour"
