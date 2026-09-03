@@ -1,4 +1,5 @@
 import os
+import uuid
 import pytest
 import httpx
 from app.db.session import engine
@@ -46,16 +47,18 @@ async def test_admin_crud_user_lifecycle(client: httpx.AsyncClient):
     headers = {"Authorization": f"Bearer {admin_token}"}
 
     # 1. Create user
+    tag = uuid.uuid4().hex[:6]
+    test_email = f"nguyen.test.{tag}@example.com"
     new_user = {
         "full_name": "Nguyễn Văn Test",
-        "email": "nguyen.test@example.com",
+        "email": test_email,
         "password": "Password123!",
         "role": "AGENT",
     }
     res = await client.post("/api/users", json=new_user, headers=headers)
     assert res.status_code == 201, res.text
     data = res.json()
-    assert data["email"] == "nguyen.test@example.com"
+    assert data["email"] == test_email
     assert data["role"] == "AGENT"
     assert data["is_active"] is True
     assert "password" not in data
@@ -73,7 +76,7 @@ async def test_admin_crud_user_lifecycle(client: httpx.AsyncClient):
     assert res_get.json()["id"] == user_id
 
     # 4. List users
-    res_list = await client.get("/api/users?q=nguyen.test", headers=headers)
+    res_list = await client.get(f"/api/users?q={tag}", headers=headers)
     assert res_list.status_code == 200
     assert res_list.json()["total"] >= 1
     assert any(u["id"] == user_id for u in res_list.json()["items"])

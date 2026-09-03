@@ -82,6 +82,17 @@ Từ S5, nhân viên/quản lý/admin mở **"Bảng điều khiển"** tại `/
 
 Demo nhanh: đăng nhập `admin@example.com` (mật khẩu seed ở bảng S1), hoặc `hung.manager@example.com` / `lan.agent@example.com` (mật khẩu seed ở bảng S1) → mở **"Bảng điều khiển"** → đổi preset khoảng thời gian hoặc chọn ngày → xem KPI/SLA/trung bình và biểu đồ xu hướng theo phạm vi của vai trò. Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-03-s5-dashboard.md`.
 
+### S6 — Quản trị hệ thống (Admin Module)
+
+Từ S6, quản trị viên (`ADMIN`) có khu vực **"Quản trị"** tại `/app/admin` với 4 phân hệ độc lập:
+
+- **Người dùng (`/app/admin/users`)**: Tạo mới (tự đặt mật khẩu khởi tạo), chỉnh sửa thông tin, phân vai trò (`AGENT`, `MANAGER`, `ADMIN`), vô hiệu hóa/kích hoạt tài khoản. Hệ thống có bảo vệ chặn vô hiệu hóa hoặc hạ quyền quản trị viên cuối cùng (FR-ADM-04). Khi một nhân viên bị vô hiệu hóa, các vé đang mở phụ trách tự động gắn cờ *cần phân công lại* (FR-ASG-09).
+- **Nhóm hỗ trợ & Thành viên (`/app/admin/teams`)**: Tạo và cấu hình nhóm, phân công thành viên với vai trò trong nhóm (`MEMBER` hoặc `MANAGER`). Chặn thêm người dùng đang bị vô hiệu hóa vào nhóm (FR-ADM-08). Xóa thành viên giữ nguyên lịch sử xử lý trước đây (FR-ADM-09).
+- **Chính sách SLA (`/app/admin/sla-policies`)**: Quản lý cam kết thời gian phản hồi đầu tiên và giải quyết xong theo từng mức độ ưu tiên (`URGENT`, `HIGH`, `MEDIUM`, `LOW`). Tự động phát hiện và chặn chồng lấn thời gian hiệu lực (`409 SLA_POLICY_CONFLICT`) giữa các chính sách cùng mức ưu tiên đang hoạt động (FR-SLA-02).
+- **Nhật ký kiểm toán (`/app/admin/audit-logs`)**: Trình xem nhật ký bất biến (chỉ đọc), lọc theo đối tượng (`USER`, `TEAM`, `SLA_POLICY`, `TICKET`, `AI`, `AUTH`), hành động, khoảng ngày. Hỗ trợ xem cấu trúc metadata JSON chi tiết. Mọi thay đổi người dùng, nhóm, SLA đều sinh nhật ký tự động.
+
+Demo nhanh: đăng nhập `admin@example.com` (mật khẩu `Admin@Dev123`) → vào **"Quản trị"** → tab "Người dùng" → tạo tài khoản agent mới → tab "Nhóm hỗ trợ" → gán agent mới vào Team Kỹ thuật → đăng xuất và đăng nhập bằng tài khoản agent vừa tạo. Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-03-s6-admin.md`.
+
 ## Chạy backend khi đang phát triển
 
 - DB: `docker compose up -d db`

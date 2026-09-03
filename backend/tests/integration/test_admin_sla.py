@@ -1,4 +1,5 @@
 import os
+import uuid
 import httpx
 import pytest
 
@@ -54,35 +55,37 @@ async def test_sla_policy_crud_and_conflict(client: httpx.AsyncClient):
     assert res_conflict.status_code == 409
     assert res_conflict.json()["error_code"] == "SLA_POLICY_CONFLICT"
 
-    # 3. Cap existing LOW policy's effective_to so it doesn't extend to infinity
-    low_pol = next(p for p in res.json() if p["priority"] == "LOW" and p["is_active"])
-    await client.patch(
-        f"/api/sla-policies/{low_pol['id']}",
-        json={"effective_to": "2030-01-01T00:00:00Z"},
-        headers=headers,
-    )
-
-    # 4. Create non-overlapping future policy -> 201
-    valid_payload = {
-        "name": "Future Policy",
-        "priority": "LOW",
-        "first_response_minutes": 200,
-        "resolution_minutes": 1000,
+    # 3. Create inactive/draft policy for URGENT -> 201 (no conflict because is_active=False)
+    tag = uuid.uuid4().hex[:6]
+    draft_payload = {
+        "name": f"Draft URGENT {tag}",
+        "priority": "URGENT",
+        "first_response_minutes": 20,
+        "resolution_minutes": 180,
         "pause_on_pending": True,
-        "effective_from": "2030-01-01T00:00:00Z",
-        "effective_to": "2031-01-01T00:00:00Z",
-        "is_active": True,
+        "effective_from": "2025-01-01T00:00:00Z",
+        "effective_to": None,
+        "is_active": False,
     }
-    res_created = await client.post("/api/sla-policies", json=valid_payload, headers=headers)
+    res_created = await client.post("/api/sla-policies", json=draft_payload, headers=headers)
     assert res_created.status_code == 201
     pol_id = res_created.json()["id"]
 
-    # 4. Update policy
+    # 4. Attempt to activate draft policy -> 409 SLA_POLICY_CONFLICT (overlaps with seed URGENT)
+    res_activate_conflict = await client.patch(
+        f"/api/sla-policies/{pol_id}",
+        json={"is_active": True},
+        headers=headers,
+    )
+    assert res_activate_conflict.status_code == 409
+    assert res_activate_conflict.json()["error_code"] == "SLA_POLICY_CONFLICT"
+
+    # 5. Update non-conflicting fields (name, minutes) -> 200
     res_updated = await client.patch(
         f"/api/sla-policies/{pol_id}",
-        json={"name": "Future Policy Renamed", "first_response_minutes": 250},
+        json={"name": f"Draft URGENT Updated {tag}", "first_response_minutes": 25},
         headers=headers,
     )
     assert res_updated.status_code == 200
-    assert res_updated.json()["name"] == "Future Policy Renamed"
-    assert res_updated.json()["first_response_minutes"] == 250
+    assert res_updated.json()["name"] == f"Draft URGENT Updated {tag}"
+    assert res_updated.json()["first_response_minutes"] == 25
