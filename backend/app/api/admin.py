@@ -5,8 +5,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import require_roles
 from app.db.session import get_session
 from app.models.user import User
-from app.schemas.admin import PaginatedUsers, UserCreate, UserOut, UserUpdate
-from app.services import user_service
+from app.schemas.admin import (
+    MemberAdd,
+    PaginatedUsers,
+    TeamCreate,
+    TeamDetailOut,
+    TeamOut,
+    TeamUpdate,
+    UserCreate,
+    UserOut,
+    UserUpdate,
+)
+from app.services import team_service, user_service
 
 router = APIRouter(tags=["admin"])
 
@@ -53,4 +63,72 @@ async def update_user(
 ):
     return await user_service.update_user(
         session, actor_id=current_user.id, user_id=user_id, payload=payload
+    )
+
+
+# --- Teams & Members ---
+
+
+@router.post("/teams", response_model=TeamOut, status_code=201)
+async def create_team(
+    payload: TeamCreate,
+    current_user: User = Depends(require_roles("ADMIN")),
+    session: AsyncSession = Depends(get_session),
+):
+    t = await team_service.create_team(session, actor_id=current_user.id, payload=payload)
+    return {
+        "id": t.id,
+        "name": t.name,
+        "description": t.description,
+        "is_active": t.is_active,
+        "created_at": t.created_at,
+        "updated_at": t.updated_at,
+        "member_count": 0,
+    }
+
+
+@router.get("/teams/{team_id}", response_model=TeamDetailOut)
+async def get_team(
+    team_id: uuid.UUID,
+    _: User = Depends(require_roles("ADMIN")),
+    session: AsyncSession = Depends(get_session),
+):
+    return await team_service.get_team_detail(session, team_id=team_id)
+
+
+@router.patch("/teams/{team_id}", response_model=TeamDetailOut)
+async def update_team(
+    team_id: uuid.UUID,
+    payload: TeamUpdate,
+    current_user: User = Depends(require_roles("ADMIN")),
+    session: AsyncSession = Depends(get_session),
+):
+    await team_service.update_team(
+        session, actor_id=current_user.id, team_id=team_id, payload=payload
+    )
+    return await team_service.get_team_detail(session, team_id=team_id)
+
+
+@router.post("/teams/{team_id}/members", status_code=200)
+async def add_team_member(
+    team_id: uuid.UUID,
+    payload: MemberAdd,
+    current_user: User = Depends(require_roles("ADMIN")),
+    session: AsyncSession = Depends(get_session),
+):
+    await team_service.add_team_member(
+        session, actor_id=current_user.id, team_id=team_id, payload=payload
+    )
+    return {"message": "Thêm thành viên thành công."}
+
+
+@router.delete("/teams/{team_id}/members/{user_id}", status_code=204)
+async def remove_team_member(
+    team_id: uuid.UUID,
+    user_id: uuid.UUID,
+    current_user: User = Depends(require_roles("ADMIN")),
+    session: AsyncSession = Depends(get_session),
+):
+    await team_service.remove_team_member(
+        session, actor_id=current_user.id, team_id=team_id, user_id=user_id
     )
