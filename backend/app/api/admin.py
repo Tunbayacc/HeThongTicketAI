@@ -8,6 +8,9 @@ from app.models.user import User
 from app.schemas.admin import (
     MemberAdd,
     PaginatedUsers,
+    SlaPolicyCreate,
+    SlaPolicyOut,
+    SlaPolicyUpdate,
     TeamCreate,
     TeamDetailOut,
     TeamOut,
@@ -16,7 +19,7 @@ from app.schemas.admin import (
     UserOut,
     UserUpdate,
 )
-from app.services import team_service, user_service
+from app.services import sla_policy_service, team_service, user_service
 
 router = APIRouter(tags=["admin"])
 
@@ -131,4 +134,38 @@ async def remove_team_member(
 ):
     await team_service.remove_team_member(
         session, actor_id=current_user.id, team_id=team_id, user_id=user_id
+    )
+
+
+# --- SLA Policies ---
+
+
+@router.get("/sla-policies", response_model=list[SlaPolicyOut])
+async def list_sla_policies(
+    priority: str | None = Query(default=None),
+    is_active: bool | None = Query(default=None),
+    _: User = Depends(require_roles("ADMIN")),
+    session: AsyncSession = Depends(get_session),
+):
+    return await sla_policy_service.list_policies(session, priority=priority, is_active=is_active)
+
+
+@router.post("/sla-policies", response_model=SlaPolicyOut, status_code=201)
+async def create_sla_policy(
+    payload: SlaPolicyCreate,
+    current_user: User = Depends(require_roles("ADMIN")),
+    session: AsyncSession = Depends(get_session),
+):
+    return await sla_policy_service.create_policy(session, actor_id=current_user.id, payload=payload)
+
+
+@router.patch("/sla-policies/{policy_id}", response_model=SlaPolicyOut)
+async def update_sla_policy(
+    policy_id: uuid.UUID,
+    payload: SlaPolicyUpdate,
+    current_user: User = Depends(require_roles("ADMIN")),
+    session: AsyncSession = Depends(get_session),
+):
+    return await sla_policy_service.update_policy(
+        session, actor_id=current_user.id, policy_id=policy_id, payload=payload
     )

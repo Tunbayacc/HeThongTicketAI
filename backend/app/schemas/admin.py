@@ -81,3 +81,40 @@ class TeamUpdate(BaseModel):
 class MemberAdd(BaseModel):
     user_id: uuid.UUID
     team_role: Literal["MEMBER", "MANAGER"] = "MEMBER"
+
+
+# --- SLA Policies ---
+
+
+class SlaPolicyOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    name: str
+    priority: str
+    first_response_minutes: int
+    resolution_minutes: int
+    pause_on_pending: bool
+    effective_from: datetime
+    effective_to: datetime | None
+    is_active: bool
+
+
+class SlaPolicyCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+    priority: Literal["LOW", "MEDIUM", "HIGH", "URGENT"]
+    first_response_minutes: int = Field(gt=0)
+    resolution_minutes: int = Field(gt=0)
+    pause_on_pending: bool = False
+    effective_from: datetime
+    effective_to: datetime | None = None
+    is_active: bool = True
+
+
+class SlaPolicyUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+    first_response_minutes: int | None = Field(default=None, gt=0)
+    resolution_minutes: int | None = Field(default=None, gt=0)
+    pause_on_pending: bool | None = None
+    effective_from: datetime | None = None
+    effective_to: datetime | None = None
+    is_active: bool | None = None
