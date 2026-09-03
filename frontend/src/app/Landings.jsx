@@ -19,7 +19,3 @@ function Placeholder({ title, description }) {
 export function AgentLanding() {
   return <Placeholder title="Vé hỗ trợ" description="Khu vực làm việc của nhân viên: danh sách và xử lý vé hỗ trợ." />;
 }
-
-export function AdminLanding() {
-  return <Placeholder title="Quản trị hệ thống" description="Khu vực của quản trị viên: người dùng, nhóm và chính sách SLA." />;
-}

@@ -68,6 +68,8 @@ export const api = {
   // Binary GET (file download) with the same in-memory Bearer token as the JSON calls.
   fetchBlob: (path) => fetchBlob(path),
   patch: (path, data) => request(path, { method: 'PATCH', body: JSON.stringify(data ?? {}) }),
+  del: (path) => request(path, { method: 'DELETE' }),
+  delete: (path) => request(path, { method: 'DELETE' }),
 };
 
 export { request };
