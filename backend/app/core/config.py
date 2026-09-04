@@ -36,13 +36,13 @@ class Settings(BaseSettings):
     # AI provider (real use from S4 onward)
     ai_provider: str = "mock"  # "gemini" | "mock"
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-3.8-flash"
     ai_timeout_seconds: int = 30
     ai_low_confidence_threshold: float = 0.70
 
     # Uploads (real use from S2 onward)
     max_upload_size_mb: int = 10
-    allowed_file_types: str = "pdf,png,jpg,jpeg,txt,docx"
+    allowed_file_types: str = "pdf,png,jpg,jpeg,webp,gif,txt,docx"
     upload_dir: str = "uploads"
     upload_max_files: int = 5
 

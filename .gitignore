@@ -34,3 +34,6 @@ Thumbs.db
 
 # S2 uploaded attachments (stored under backend/uploads/, DB keeps metadata only)
 backend/uploads/
+
+# AI IDE metadata
+.agents/

@@ -1,32 +1,229 @@
-:root {
-  --color-bg: #ffffff;
-  --color-surface: #f7f9fc;
-  --color-border: #dbe1ea;
-  --color-text: #1a2433;
-  --color-text-muted: #5c6b80;
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-success: #16a34a;
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --space-1: 4px; --space-2: 8px; --space-3: 12px;
-  --space-4: 16px; --space-6: 24px; --space-8: 32px;
-  --font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.25rem;
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
-}
+/* ============================================================
+   DESIGN TOKENS — Modern Light Mode SaaS Palette
+   Clean, luminous, professional support workspace tokens.
+   ============================================================ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #0f172a;
-    --color-surface: #1e293b;
-    --color-border: #334155;
-    --color-text: #e2e8f0;
-    --color-text-muted: #94a3b8;
-  }
+:root {
+  /* --- Typography ---------------------------------------------------- */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'Fira Code', Consolas, 'SF Mono', monospace;
+  --font-size-xs: 0.725rem;   /* 11.5px */
+  --font-size-sm: 0.8125rem;  /* 13px */
+  --font-size-base: 0.875rem; /* 14px */
+  --font-size-md: 1rem;       /* 16px */
+  --font-size-lg: 1.25rem;    /* 20px */
+  --font-size-xl: 1.5rem;     /* 24px */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+
+  /* --- Core Palette (Luminous Light Mode) ----------------------------- */
+  --color-bg: #f8fafc;              /* Soft luminous gray canvas */
+  --color-surface: #ffffff;         /* Pure crisp white card surface */
+  --color-surface-raised: #f1f5f9;  /* Secondary surface for inputs, wells */
+  --color-surface-hover: #f8fafc;
+  --color-border: #e2e8f0;          /* Clean delicate divider */
+  --color-border-subtle: #f1f5f9;
+  --color-border-strong: #cbd5e1;   /* High-contrast element border */
+  --color-text: #0f172a;            /* Rich slate-900 primary text */
+  --color-text-secondary: #334155;  /* Slate-700 readable body */
+  --color-text-muted: #64748b;      /* Slate-500 secondary metadata */
+  --color-text-faint: #94a3b8;      /* Slate-400 placeholder */
+
+  /* --- Brand / Primary Accent ---------------------------------------- */
+  --color-primary: #2563eb;         /* Modern bright electric blue */
+  --color-primary-hover: #1d4ed8;
+  --color-primary-subtle: #eff6ff;
+  --color-primary-text: #1d4ed8;
+  --color-primary-border: #bfdbfe;
+
+  /* --- Semantic: Success --------------------------------------------- */
+  --color-success: #16a34a;
+  --color-success-hover: #15803d;
+  --color-success-subtle: #f0fdf4;
+  --color-success-text: #15803d;
+  --color-success-border: #bbf7d0;
+
+  /* --- Semantic: Warning --------------------------------------------- */
+  --color-warning: #d97706;
+  --color-warning-hover: #b45309;
+  --color-warning-subtle: #fffbeb;
+  --color-warning-text: #92400e;
+  --color-warning-border: #fde68a;
+
+  /* --- Semantic: Danger ---------------------------------------------- */
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-subtle: #fef2f2;
+  --color-danger-text: #b91c1c;
+  --color-danger-border: #fecaca;
+
+  /* --- Semantic: Info ------------------------------------------------ */
+  --color-info: #0284c7;
+  --color-info-subtle: #f0f9ff;
+  --color-info-text: #0369a1;
+  --color-info-border: #bae6fd;
+
+  /* --- Status badges ------------------------------------------------- */
+  --status-open-bg: #eef2ff;
+  --status-open-text: #4338ca;
+  --status-open-border: #c7d2fe;
+
+  --status-in_progress-bg: #ecfeff;
+  --status-in_progress-text: #0e7490;
+  --status-in_progress-border: #a5f3fc;
+
+  --status-pending-bg: #fffbeb;
+  --status-pending-text: #b45309;
+  --status-pending-border: #fde68a;
+
+  --status-resolved-bg: #f0fdf4;
+  --status-resolved-text: #15803d;
+  --status-resolved-border: #bbf7d0;
+
+  --status-closed-bg: #f8fafc;
+  --status-closed-text: #475569;
+  --status-closed-border: #e2e8f0;
+
+  /* --- Priority badges ----------------------------------------------- */
+  --priority-low-bg: #f0fdf4;
+  --priority-low-text: #166534;
+  --priority-low-border: #bbf7d0;
+
+  --priority-medium-bg: #eff6ff;
+  --priority-medium-text: #1d4ed8;
+  --priority-medium-border: #bfdbfe;
+
+  --priority-high-bg: #fff7ed;
+  --priority-high-text: #c2410c;
+  --priority-high-border: #fed7aa;
+
+  --priority-urgent-bg: #fef2f2;
+  --priority-urgent-text: #b91c1c;
+  --priority-urgent-border: #fecaca;
+
+  /* --- Visibility badges --------------------------------------------- */
+  --vis-public-bg: #eff6ff;
+  --vis-public-text: #1d4ed8;
+  --vis-public-border: #bfdbfe;
+
+  --vis-internal-bg: #faf5ff;
+  --vis-internal-text: #6b21a8;
+  --vis-internal-border: #e9d5ff;
+
+  /* --- Role badges --------------------------------------------------- */
+  --role-admin-bg: #fef2f2;
+  --role-admin-text: #b91c1c;
+  --role-admin-border: #fecaca;
+
+  --role-manager-bg: #eef2ff;
+  --role-manager-text: #4338ca;
+  --role-manager-border: #c7d2fe;
+
+  --role-agent-bg: #f0f9ff;
+  --role-agent-text: #0369a1;
+  --role-agent-border: #bae6fd;
+
+  /* --- Active / Inactive states -------------------------------------- */
+  --active-bg: #f0fdf4;
+  --active-text: #15803d;
+  --active-border: #bbf7d0;
+
+  --inactive-bg: #f8fafc;
+  --inactive-text: #64748b;
+  --inactive-border: #e2e8f0;
+
+  /* --- AI lifecycle badges ------------------------------------------- */
+  --ai-pending-bg: #fffbeb;
+  --ai-pending-text: #b45309;
+  --ai-pending-border: #fde68a;
+
+  --ai-approved-bg: #f0fdf4;
+  --ai-approved-text: #15803d;
+  --ai-approved-border: #bbf7d0;
+
+  --ai-edited-bg: #eff6ff;
+  --ai-edited-text: #1d4ed8;
+  --ai-edited-border: #bfdbfe;
+
+  --ai-rejected-bg: #f8fafc;
+  --ai-rejected-text: #475569;
+  --ai-rejected-border: #e2e8f0;
+
+  --ai-failed-bg: #fef2f2;
+  --ai-failed-text: #b91c1c;
+  --ai-failed-border: #fecaca;
+
+  /* --- SLA indicators ------------------------------------------------ */
+  --sla-ok-bg: #f0fdf4;
+  --sla-ok-text: #15803d;
+  --sla-ok-border: #bbf7d0;
+
+  --sla-warn-bg: #fffbeb;
+  --sla-warn-text: #b45309;
+  --sla-warn-border: #fde68a;
+
+  --sla-over-bg: #fef2f2;
+  --sla-over-text: #b91c1c;
+  --sla-over-border: #fecaca;
+
+  /* --- Chart segment fills ------------------------------------------- */
+  --seg-open: #818cf8;
+  --seg-in_progress: #38bdf8;
+  --seg-pending: #fbbf24;
+  --seg-resolved: #4ade80;
+  --seg-closed: #cbd5e1;
+
+  /* --- Spacing ------------------------------------------------------- */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* --- Radius -------------------------------------------------------- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* --- Shadows (delicate & multi-layered) ---------------------------- */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -1px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+
+  /* --- Transitions --------------------------------------------------- */
+  --transition-fast: 0.12s ease;
+  --transition-base: 0.18s ease;
+  --transition-slow: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- Z-index ------------------------------------------------------- */
+  --z-sidebar: 40;
+  --z-header: 30;
+  --z-dropdown: 50;
+  --z-modal: 100;
+  --z-toast: 110;
+
+  /* --- Modern Light Sidebar ------------------------------------------ */
+  --sidebar-width: 230px;
+  --sidebar-collapsed-width: 60px;
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e2e8f0;
+  --sidebar-text: #475569;
+  --sidebar-text-hover: #0f172a;
+  --sidebar-active-bg: #eff6ff;
+  --sidebar-active-text: #2563eb;
+  --sidebar-active-border: #bfdbfe;
 }

@@ -151,11 +151,16 @@ def _row_to_item(row) -> dict:
 
 
 async def list_tickets(session: AsyncSession, *, user: User, page: int, page_size: int,
-                       status: str | None = None, q: str | None = None, assigned_to_me: bool = False,
-                       team_id: str | None = None):
+                       status: str | None = None, priority: str | None = None,
+                       category: str | None = None, q: str | None = None,
+                       assigned_to_me: bool = False, team_id: str | None = None):
     conds = await build_ticket_scope_conditions(session, user=user)
     if status:
         conds.append(Ticket.status == status)
+    if priority:
+        conds.append(Ticket.priority == priority)
+    if category:
+        conds.append(Ticket.category == category)
     if q:
         needle = f"%{q.strip().lower()}%"
         conds.append(or_(

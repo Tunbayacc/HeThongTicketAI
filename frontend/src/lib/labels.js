@@ -1,9 +1,10 @@
 // S2 UI copy: identifiers stay English (enum values), display always Vietnamese
 // (Global Constraint). Keep maps in sync with backend app/models/enums.py.
+
 export const STATUS_LABELS = {
   OPEN: 'Mở',
   IN_PROGRESS: 'Đang xử lý',
-  PENDING: 'Chờ bổ sung thông tin',
+  PENDING: 'Chờ phản hồi',
   RESOLVED: 'Đã giải quyết',
   CLOSED: 'Đã đóng',
 };
@@ -26,6 +27,23 @@ export const CATEGORY_LABELS = {
 export const VISIBILITY_LABELS = {
   PUBLIC: 'Công khai',
   INTERNAL: 'Nội bộ',
+};
+
+export const ROLE_LABELS = {
+  AGENT: 'Nhân viên hỗ trợ',
+  MANAGER: 'Quản lý nhóm',
+  ADMIN: 'Quản trị viên',
+};
+
+export const ROLE_SHORT_LABELS = {
+  AGENT: 'Nhân viên',
+  MANAGER: 'Quản lý',
+  ADMIN: 'Quản trị viên',
+};
+
+export const TEAM_ROLE_LABELS = {
+  MEMBER: 'Thành viên',
+  MANAGER: 'Trưởng nhóm',
 };
 
 export function labelOf(map, value) {

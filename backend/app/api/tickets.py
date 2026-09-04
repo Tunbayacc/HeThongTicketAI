@@ -149,12 +149,15 @@ async def list_tickets(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     status: str | None = Query(default=None, pattern="^(OPEN|IN_PROGRESS|PENDING|RESOLVED|CLOSED)$"),
+    priority: str | None = Query(default=None, pattern="^(LOW|MEDIUM|HIGH|URGENT)$"),
+    category: str | None = Query(default=None, pattern="^(BILLING|TECHNICAL|ACCOUNT|GENERAL)$"),
     q: str | None = Query(default=None, max_length=100),
     assigned_to_me: bool = Query(False),
     team_id: str | None = Query(default=None),
 ) -> TicketListResponse:
     total, items = await ticket_service.list_tickets(
-        session, user=user, page=page, page_size=page_size, status=status, q=q,
+        session, user=user, page=page, page_size=page_size, status=status,
+        priority=priority, category=category, q=q,
         assigned_to_me=assigned_to_me, team_id=team_id,
     )
     return TicketListResponse(items=[TicketListItem(**it) for it in items],

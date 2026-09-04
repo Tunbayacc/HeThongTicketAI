@@ -20,19 +20,20 @@ function OutputBody({ row }) {
   if (row.result_type === 'CLASSIFICATION') {
     return (
       <p className="ai-meta">
-        Đề xuất: nhóm {labelOf(CATEGORY_LABELS, o.category)} — ưu tiên{' '}
-        {labelOf(PRIORITY_LABELS, o.priority)} — độ tin cậy {Math.round((row.confidence ?? 0) * 100)}%.
-        {o.reason ? ` Lý do: ${o.reason}` : ''}
+        Đề xuất: Nhóm <strong>{labelOf(CATEGORY_LABELS, o.category)}</strong> — Mức ưu tiên{' '}
+        <strong>{labelOf(PRIORITY_LABELS, o.priority)}</strong> — Độ tin cậy:{' '}
+        <strong>{Math.round((row.confidence ?? 0) * 100)}%</strong>.
+        {o.reason ? ` (Lý do: ${o.reason})` : ''}
       </p>
     );
   }
   if (row.result_type === 'SUMMARY') {
     return (
       <div className="ai-note">
-        <p><strong>Vấn đề:</strong> {o.problem || '—'}</p>
+        <p><strong>Vấn đề chính:</strong> {o.problem || '—'}</p>
         {o.current_status ? <p><strong>Hiện trạng:</strong> {o.current_status}</p> : null}
         {Array.isArray(o.key_points) && o.key_points.length > 0 && (
-          <p><strong>Điểm chính:</strong></p>
+          <p><strong>Các điểm quan trọng:</strong></p>
         )}
         {Array.isArray(o.key_points) && o.key_points.length > 0 && (
           <ul className="ai-keypoints">
@@ -42,7 +43,9 @@ function OutputBody({ row }) {
           </ul>
         )}
         {Array.isArray(o.next_steps) && o.next_steps.length > 0 && (
-          <p className="ai-meta">Bước tiếp theo: {o.next_steps.join(' · ')}</p>
+          <p className="ai-meta" style={{ marginTop: 'var(--space-2)' }}>
+            <strong>Bước tiếp theo:</strong> {o.next_steps.join(' · ')}
+          </p>
         )}
       </div>
     );
@@ -50,10 +53,11 @@ function OutputBody({ row }) {
   // DRAFT_REPLY
   return (
     <div className="ai-note">
+      <p className="ai-draft-label">⚡ Gợi ý câu trả lời do AI soạn — vui lòng kiểm tra trước khi gửi</p>
       <p className="pre-wrap ai-draftbox">{o.draft || '—'}</p>
-      {o.tone ? <p className="ai-meta">Giọng văn: {o.tone}</p> : null}
+      {o.tone ? <p className="ai-meta">Giọng điệu: {o.tone}</p> : null}
       {Array.isArray(o.warnings) && o.warnings.map((w, i) => (
-        <p key={`w-${i}`} className="ai-meta">⚠ {w}</p>
+        <p key={`w-${i}`} className="ai-meta" style={{ color: 'var(--color-warning-text)' }}>⚠ Lưu ý: {w}</p>
       ))}
     </div>
   );
@@ -65,6 +69,8 @@ export default function AiReviewPanel({ ticketId, detail, onDraft, onTicketChang
   const [acting, setActing] = useState(null); // result id while a review call is in flight
   const [error, setError] = useState(null);
   const [conflict, setConflict] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
+  const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const [edit, setEdit] = useState({});       // classify resultId -> {category, priority} overrides
   const [instruction, setInstruction] = useState('');
 
@@ -74,7 +80,7 @@ export default function AiReviewPanel({ ticketId, detail, onDraft, onTicketChang
       setRows(body.items || []);
       setError(null);
     } catch (err) {
-      setError(err.message || 'Không tải được dữ liệu AI.');
+      setError(err.message || 'Không thể tải dữ liệu từ trợ lý AI.');
     }
   }, [ticketId]);
 
@@ -88,8 +94,6 @@ export default function AiReviewPanel({ ticketId, detail, onDraft, onTicketChang
   );
   const history = rows.filter((r) => r.status !== 'PENDING_REVIEW');
 
-  // Seed the override selects from the AI proposal whenever a new pending
-  // classification appears (so the "chỉnh sửa" flow starts from the proposal).
   useEffect(() => {
     if (pendingClassify && !edit[pendingClassify.id]) {
       const o = pendingClassify.original_output || {};
@@ -110,13 +114,13 @@ export default function AiReviewPanel({ ticketId, detail, onDraft, onTicketChang
 
   function handleErr(err) {
     if (err.status === 409) {
-      setConflict('Kết quả AI hoặc vé vừa được cập nhật ở nơi khác. Đã tải lại dữ liệu mới — vui lòng thử lại.');
+      setConflict('Dữ liệu AI hoặc vé vừa được cập nhật ở nơi khác. Đã tải lại phiên bản mới — vui lòng thử lại.');
       load();
       if (onTicketChanged) onTicketChanged();
     } else if (err.status === 403) {
       setError('Bạn không có quyền thực hiện thao tác này.');
     } else {
-      setError(err.message || 'Thao tác AI thất bại. Vui lòng thử lại.');
+      setError(err.message || 'Thao tác AI không thành công. Vui lòng thử lại.');
     }
   }
 
@@ -124,6 +128,7 @@ export default function AiReviewPanel({ ticketId, detail, onDraft, onTicketChang
     setBusy(type);
     setConflict(null);
     setError(null);
+    setSuccessMsg(null);
     try {
       const verb = type === 'CLASSIFICATION' ? 'classify'
         : type === 'SUMMARY' ? 'summarize' : 'draft';
@@ -144,14 +149,32 @@ export default function AiReviewPanel({ ticketId, detail, onDraft, onTicketChang
     setActing(id);
     setConflict(null);
     setError(null);
+    setSuccessMsg(null);
     try {
       const row = rows.find((r) => r.id === id);
       if (action === 'approve') {
         await api.post(`/api/ai/results/${id}/approve`, { version: detail.version });
+        if (row?.result_type === 'DRAFT_REPLY') {
+          const draftText = row.reviewed_output?.draft || row.original_output?.draft;
+          if (draftText && onDraft) {
+            onDraft(draftText);
+            setSuccessMsg('Đã duyệt gợi ý và tự động đưa nội dung vào ô trả lời!');
+            setTimeout(() => {
+              const el = document.querySelector('.composer textarea');
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          } else {
+            setSuccessMsg('Đã duyệt gợi ý trả lời thành công!');
+          }
+        } else if (row?.result_type === 'CLASSIFICATION') {
+          setSuccessMsg('Đã duyệt và áp dụng phân loại vé theo đề xuất AI!');
+        } else if (row?.result_type === 'SUMMARY') {
+          setSuccessMsg('Đã duyệt bản tóm tắt nội dung vé!');
+        }
       } else if (action === 'reject') {
         await api.post(`/api/ai/results/${id}/reject`, {});
+        setSuccessMsg('Đã từ chối kết quả đề xuất của AI.');
       } else {
-        // 'edit' -> submit the human's corrected classification for review.
         const o = (row && row.original_output) || {};
         const cur = edit[id] || { category: o.category || '', priority: o.priority || 'MEDIUM' };
         await api.post(`/api/ai/results/${id}/edit`, {
@@ -163,6 +186,7 @@ export default function AiReviewPanel({ ticketId, detail, onDraft, onTicketChang
           },
           version: detail.version,
         });
+        setSuccessMsg('Đã lưu chỉnh sửa phân loại vé!');
       }
       await load();
       if (onTicketChanged) onTicketChanged();
@@ -186,139 +210,221 @@ export default function AiReviewPanel({ ticketId, detail, onDraft, onTicketChang
       disabled={busy !== null || acting !== null}
       onClick={() => generate(type)}
     >
-      {busy === type ? 'Đang tạo…' : label}
+      {busy === type ? 'Đang phân tích…' : label}
     </button>
   );
 
   return (
-    <section className="ai-panel" aria-label="Trợ lý AI">
-      <h2>Trợ lý AI</h2>
-      <p className="ai-sub text-muted">
-        AI chỉ đề xuất — mọi kết quả đều cần nhân viên duyệt trước khi áp dụng.
-      </p>
+    <section className="ai-panel" aria-label="Trợ lý AI hỗ trợ">
+      <div className="ai-panel-header">
+        <span className="ai-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4Z" />
+            <circle cx="9" cy="14" r="1" /><circle cx="15" cy="14" r="1" />
+          </svg>
+        </span>
+        <h2>Trợ lý AI</h2>
+      </div>
+      <p className="ai-sub">AI gợi ý giải pháp — nhân viên luôn giữ quyền quyết định áp dụng.</p>
 
-      <div className="ai-toolbar">
-        <GenButton type="CLASSIFICATION" label="Phân loại tự động" />
-        <GenButton type="SUMMARY" label="Tóm tắt AI" />
+      <div className="ai-panel-body">
+        <div className="ai-toolbar">
+          <GenButton type="CLASSIFICATION" label="Phân loại tự động" />
+          <GenButton type="SUMMARY" label="Tóm tắt vé" />
+          <GenButton type="DRAFT_REPLY" label="Gợi ý trả lời" />
+        </div>
+
         <label className="field ai-instr">
-          <span>Yêu cầu thêm cho bản nháp (tùy chọn)</span>
+          <span className="text-xs">Chỉ dẫn cho gợi ý trả lời (tùy chọn)</span>
           <input
             value={instruction}
             maxLength={1000}
             onChange={(e) => setInstruction(e.target.value)}
-            placeholder="VD: Nhã nhặn, ngắn gọn…"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !busy && !acting) {
+                e.preventDefault();
+                generate('DRAFT_REPLY');
+              }
+            }}
+            placeholder="VD: Trả lời ngắn gọn, lịch sự, xin lỗi vì sự bất tiện…"
           />
         </label>
-      </div>
 
-      {error && <p className="form-error" role="alert">{error}</p>}
-      {conflict && <p className="form-error" role="alert">{conflict}</p>}
+        {error && <p className="form-error" role="alert">{error}</p>}
+        {conflict && <p className="form-error" role="alert">{conflict}</p>}
+        {successMsg && <div className="ai-success-msg" role="status">✓ {successMsg}</div>}
 
-      {pendingClassify && (() => {
-        const cur = editOf(pendingClassify);
-        const low = pendingClassify.low_confidence;
-        return (
-          <div className="ai-card">
+        {pendingClassify && (() => {
+          const cur = editOf(pendingClassify);
+          const low = pendingClassify.low_confidence;
+          return (
+            <div className="ai-card">
+              <div className="ai-card-head">
+                <span className="ai-type">Đề xuất phân loại</span>
+                <StatusBadge status={pendingClassify.status} />
+              </div>
+              {low && (
+                <div className="ai-low-warning">⚠ Độ tin cậy thấp — khuyến nghị kiểm tra kỹ</div>
+              )}
+              <OutputBody row={pendingClassify} />
+              <div className="ai-fields">
+                <label className="field">
+                  <span>Phân loại</span>
+                  <select
+                    value={cur.category}
+                    onChange={(e) => setField(pendingClassify.id, 'category', e.target.value)}
+                  >
+                    {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Mức ưu tiên</span>
+                  <select
+                    value={cur.priority}
+                    onChange={(e) => setField(pendingClassify.id, 'priority', e.target.value)}
+                  >
+                    {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="ai-review-actions">
+                <button className="btn-primary btn-sm" disabled={acting !== null}
+                  onClick={() => review(pendingClassify.id, 'approve')}>
+                  {acting === pendingClassify.id ? 'Đang lưu…' : 'Duyệt đề xuất'}
+                </button>
+                <button className="btn-secondary btn-sm" disabled={acting !== null}
+                  onClick={() => review(pendingClassify.id, 'edit')}>
+                  {acting === pendingClassify.id ? 'Đang lưu…' : 'Lưu chỉnh sửa'}
+                </button>
+                <button className="btn-ghost btn-sm" disabled={acting !== null}
+                  onClick={() => review(pendingClassify.id, 'reject')}>
+                  Từ chối
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {pendingOther.map((row) => (
+          <div className="ai-card" key={row.id}>
             <div className="ai-card-head">
-              <span className="ai-type">Phân loại — chờ duyệt</span>
-              <StatusBadge status={pendingClassify.status} />
-              {low && <span className="ai-low">⚠ Độ tin cậy thấp — hãy kiểm tra kỹ</span>}
+              <span className="ai-type">
+                {row.result_type === 'SUMMARY' ? 'Tóm tắt do AI' : 'Gợi ý trả lời do AI'} — Chờ duyệt
+              </span>
+              <StatusBadge status={row.status} />
             </div>
-            <OutputBody row={pendingClassify} />
-            <div className="ai-fields">
-              <label className="field">
-                <span>Phân loại (có thể chỉnh)</span>
-                <select
-                  value={cur.category}
-                  onChange={(e) => setField(pendingClassify.id, 'category', e.target.value)}
-                >
-                  {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Ưu tiên (có thể chỉnh)</span>
-                <select
-                  value={cur.priority}
-                  onChange={(e) => setField(pendingClassify.id, 'priority', e.target.value)}
-                >
-                  {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            <OutputBody row={row} />
             <div className="ai-review-actions">
-              <button className="btn-primary" disabled={acting !== null}
-                onClick={() => review(pendingClassify.id, 'approve')}>
-                {acting === pendingClassify.id ? 'Đang lưu…' : 'Duyệt đề xuất'}
+              <button
+                className="btn-primary btn-sm"
+                disabled={acting !== null}
+                onClick={() => review(row.id, 'approve')}
+              >
+                {acting === row.id
+                  ? 'Đang lưu…'
+                  : row.result_type === 'DRAFT_REPLY'
+                  ? 'Duyệt & Đưa vào ô trả lời'
+                  : 'Duyệt tóm tắt'}
               </button>
-              <button className="btn-secondary" disabled={acting !== null}
-                onClick={() => review(pendingClassify.id, 'edit')}>
-                {acting === pendingClassify.id ? 'Đang lưu…' : 'Lưu chỉnh sửa'}
-              </button>
-              <button className="btn-secondary" disabled={acting !== null}
-                onClick={() => review(pendingClassify.id, 'reject')}>
-                {acting === pendingClassify.id ? 'Đang lưu…' : 'Từ chối'}
+              <button
+                className="btn-ghost btn-sm"
+                disabled={acting !== null}
+                onClick={() => review(row.id, 'reject')}
+              >
+                Từ chối
               </button>
             </div>
           </div>
-        );
-      })()}
+        ))}
 
-      {pendingOther.map((row) => (
-        <div className="ai-card" key={row.id}>
-          <div className="ai-card-head">
-            <span className="ai-type">
-              {row.result_type === 'SUMMARY' ? 'Tóm tắt AI' : 'Nháp trả lời AI'} — chờ duyệt
-            </span>
-            <StatusBadge status={row.status} />
-          </div>
-          <OutputBody row={row} />
-          <div className="ai-review-actions">
-            {row.result_type === 'DRAFT_REPLY' && (row.original_output?.draft) && (
-              <button className="btn-primary" disabled={acting !== null}
-                onClick={() => { if (onDraft) onDraft(row.original_output.draft); }}>
-                Đưa vào ô trả lời
-              </button>
-            )}
-            <button className="btn-secondary" disabled={acting !== null}
-              onClick={() => review(row.id, 'approve')}>
-              {acting === row.id ? 'Đang lưu…' : 'Duyệt'}
-            </button>
-            <button className="btn-secondary" disabled={acting !== null}
-              onClick={() => review(row.id, 'reject')}>
-              {acting === row.id ? 'Đang lưu…' : 'Từ chối'}
-            </button>
-          </div>
-        </div>
-      ))}
+        {pendingClassify === undefined && pendingOther.length === 0 && history.length === 0 && (
+          <p className="ai-empty">Chưa có kết quả phân tích AI nào cho vé này.</p>
+        )}
 
-      {pendingClassify === undefined && pendingOther.length === 0 && history.length === 0 && (
-        <p className="ai-empty">Chưa có kết quả AI nào cho vé này.</p>
-      )}
+        {history.length > 0 && (
+          <>
+            <p className="ai-history-heading">Lịch sử kết quả đã xử lý</p>
+            <ul className="ai-list">
+              {history.map((r) => {
+                const isExpanded = expandedHistoryId === r.id;
+                const draftText = r.reviewed_output?.draft || r.original_output?.draft;
+                const summaryText = r.reviewed_output?.summary || r.original_output?.summary;
+                const keyPoints = r.reviewed_output?.key_points || r.original_output?.key_points;
+                const hasContent = Boolean(draftText || summaryText || (Array.isArray(keyPoints) && keyPoints.length > 0));
 
-      {history.length > 0 && (
-        <>
-          <p className="ai-meta">Kết quả đã xử lý gần đây:</p>
-          <ul className="ai-list">
-            {history.map((r) => (
-              <li key={r.id} className="ai-history-item">
-                <StatusBadge status={r.status} />
-                <span>
-                  {r.result_type === 'CLASSIFICATION' ? 'Phân loại'
-                    : r.result_type === 'SUMMARY' ? 'Tóm tắt' : 'Nháp trả lời'}
-                  {r.status === 'FAILED' && r.error_code ? ` — ${r.error_code}` : ''}
-                  {r.status === 'EDITED' && r.reviewed_output?.category
-                    ? ` → ${labelOf(CATEGORY_LABELS, r.reviewed_output.category)}` : ''}
-                </span>
-                <span className="text-muted">{fmtDateTime(r.reviewed_at || r.requested_at)}</span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+                return (
+                  <li key={r.id} className="ai-history-item" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flex: 1, minWidth: 0 }}>
+                        <StatusBadge status={r.status} />
+                        <span style={{ fontWeight: 500, fontSize: 'var(--font-size-xs)' }}>
+                          {r.result_type === 'CLASSIFICATION' ? 'Phân loại'
+                            : r.result_type === 'SUMMARY' ? 'Tóm tắt' : 'Gợi ý trả lời'}
+                          {r.status === 'FAILED' && r.error_code ? ` — ${r.error_code}` : ''}
+                          {r.status === 'EDITED' && r.reviewed_output?.category
+                            ? ` → ${labelOf(CATEGORY_LABELS, r.reviewed_output.category)}` : ''}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <span className="text-muted text-xs">{fmtDateTime(r.reviewed_at || r.requested_at)}</span>
+                        {hasContent && (
+                          <button
+                            type="button"
+                            className="btn-ghost btn-xs"
+                            onClick={() => setExpandedHistoryId(isExpanded ? null : r.id)}
+                            style={{ padding: '2px 6px', fontSize: '11px', textDecoration: 'underline' }}
+                          >
+                            {isExpanded ? 'Thu lại' : 'Xem lại'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {isExpanded && hasContent && (
+                      <div className="ai-history-content-box">
+                        {draftText && (
+                          <>
+                            <p className="pre-wrap text-xs" style={{ margin: 0 }}>{draftText}</p>
+                            {onDraft && (
+                              <button
+                                type="button"
+                                className="btn-secondary btn-xs"
+                                style={{ marginTop: 'var(--space-2)', padding: '4px 8px', fontSize: '11px' }}
+                                onClick={() => {
+                                  onDraft(draftText);
+                                  setSuccessMsg('Đã đưa bản nháp từ lịch sử vào ô trả lời!');
+                                  const el = document.querySelector('.composer textarea');
+                                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }}
+                              >
+                                Đưa vào ô trả lời
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {summaryText && (
+                          <p className="pre-wrap text-xs" style={{ margin: 0 }}>{summaryText}</p>
+                        )}
+                        {Array.isArray(keyPoints) && keyPoints.length > 0 && (
+                          <ul className="ai-keypoints" style={{ marginTop: '4px' }}>
+                            {keyPoints.map((kp, i) => (
+                              <li key={i} className="text-xs">{kp}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
+      </div>
     </section>
   );
 }

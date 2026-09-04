@@ -35,8 +35,17 @@ export default function LoginPage() {
   return (
     <div className="auth-page">
       <form className="login-card" onSubmit={handleSubmit}>
-        <h1 className="login-title">Đăng nhập</h1>
-        <p className="text-muted">Hệ thống hỗ trợ khách hàng</p>
+        <div className="login-brand">
+          <span className="login-brand-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5Z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
+            </svg>
+          </span>
+          <div>
+            <h1 className="login-title">Đăng nhập</h1>
+            <p className="text-muted text-sm" style={{ margin: 0 }}>Hệ thống hỗ trợ khách hàng</p>
+          </div>
+        </div>
 
         <label className="field">
           <span>Email</span>

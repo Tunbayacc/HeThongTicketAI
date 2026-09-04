@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../api/client.js';
+import { ROLE_LABELS, TEAM_ROLE_LABELS, labelOf } from '../../lib/labels.js';
 
 export default function AdminTeamsPage() {
   const [teams, setTeams] = useState([]);
@@ -116,9 +117,7 @@ export default function AdminTeamsPage() {
     setAddMemberError(null);
     setShowAddMemberModal(true);
     try {
-      // Fetch only active users
       const data = await api.get('/api/users?is_active=true&page_size=100');
-      // Filter out users who are already active members of this team
       const existingMemberIds = new Set(
         (teamDetail?.members || []).filter((m) => m.is_active).map((m) => m.user_id)
       );
@@ -168,12 +167,84 @@ export default function AdminTeamsPage() {
     }
   }
 
+  // Summary counts
+  const totalTeams = teams.length;
+  const activeTeams = teams.filter((t) => t.is_active).length;
+  const totalAllocatedMembers = teams.reduce((acc, t) => acc + (t.member_count || 0), 0);
+  const currentTeamMembers = (teamDetail?.members || []).filter((m) => m.is_active).length;
+
   return (
-    <div>
+    <div className="admin-page-container">
+      {/* Top KPI Summary Cards */}
+      <div className="admin-summary-grid">
+        <div className="admin-kpi-card">
+          <div className="admin-kpi-content">
+            <span className="admin-kpi-val">{totalTeams}</span>
+            <span className="admin-kpi-lbl">Tổng số nhóm hỗ trợ</span>
+          </div>
+          <div className="admin-kpi-icon admin-kpi-icon--blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="admin-kpi-card">
+          <div className="admin-kpi-content">
+            <span className="admin-kpi-val" style={{ color: 'var(--color-success)' }}>
+              {activeTeams}
+            </span>
+            <span className="admin-kpi-lbl">Nhóm đang hoạt động</span>
+          </div>
+          <div className="admin-kpi-icon admin-kpi-icon--green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="admin-kpi-card">
+          <div className="admin-kpi-content">
+            <span className="admin-kpi-val" style={{ color: '#7c3aed' }}>
+              {totalAllocatedMembers}
+            </span>
+            <span className="admin-kpi-lbl">Lượt phân bổ nhân sự</span>
+          </div>
+          <div className="admin-kpi-icon admin-kpi-icon--purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="admin-kpi-card">
+          <div className="admin-kpi-content">
+            <span className="admin-kpi-val" style={{ color: 'var(--color-primary)' }}>
+              {selectedTeam ? currentTeamMembers : 0}
+            </span>
+            <span className="admin-kpi-lbl">Thành viên ({selectedTeam?.name || 'Chưa chọn'})</span>
+          </div>
+          <div className="admin-kpi-icon admin-kpi-icon--blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Toolbar */}
       <div className="admin-toolbar">
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Quản lý nhóm và phân bổ nhân sự</h2>
-          <p className="admin-subtitle">Tạo nhóm hỗ trợ chuyên trách và chỉ định thành viên, quản lý nhóm</p>
+          <h2 className="admin-toolbar-title">Quản lý nhóm và phân bổ nhân sự</h2>
+          <p className="admin-subtitle" style={{ margin: 0 }}>
+            Tạo các nhóm hỗ trợ chuyên môn, phân công trưởng nhóm và thành viên xử lý vé
+          </p>
         </div>
         <button
           type="button"
@@ -183,137 +254,180 @@ export default function AdminTeamsPage() {
             setShowCreateTeamModal(true);
           }}
         >
-          + Tạo nhóm mới
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Tạo nhóm mới
         </button>
       </div>
 
       {error && <div className="alert-error" style={{ marginBottom: 'var(--space-3)' }}>{error}</div>}
 
       {loading ? (
-        <div className="state-loading">Đang tải danh sách nhóm...</div>
+        <div className="state-loading">Đang tải danh sách nhóm hỗ trợ…</div>
       ) : teams.length === 0 ? (
-        <div className="state-empty">Chưa có nhóm hỗ trợ nào. Bấm "Tạo nhóm mới" để bắt đầu.</div>
+        <div className="empty-state">
+          <p style={{ margin: 0 }}>Chưa có nhóm hỗ trợ nào. Nhấn "Tạo nhóm mới" để khởi tạo nhóm đầu tiên.</p>
+        </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 320px) 1fr', gap: 'var(--space-4)', alignItems: 'start' }}>
-          {/* Left Column: Team List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-text-muted)' }}>
-              Danh sách nhóm ({teams.length})
-            </span>
-            {teams.map((t) => (
-              <div
-                key={t.id}
-                className="admin-card"
-                style={{
-                  cursor: 'pointer',
-                  borderColor: selectedTeam?.id === t.id ? 'var(--color-primary)' : 'var(--color-border)',
-                  backgroundColor: selectedTeam?.id === t.id ? 'var(--color-surface)' : 'var(--color-bg)',
-                  boxShadow: selectedTeam?.id === t.id ? '0 0 0 1px var(--color-primary)' : 'var(--shadow-sm)',
-                }}
-                onClick={() => setSelectedTeam(t)}
-              >
-                <div className="admin-card-header">
-                  <strong className="admin-card-title">{t.name}</strong>
-                  <span className={`badge ${t.is_active ? 'badge-active' : 'badge-inactive'}`}>
-                    {t.is_active ? 'Hoạt động' : 'Tạm dừng'}
-                  </span>
+        <div className="admin-master-detail">
+          {/* Left: Team List */}
+          <div className="admin-master-list">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1)', padding: '0 4px' }}>
+              <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Danh mục nhóm ({teams.length})
+              </span>
+            </div>
+
+            {teams.map((t) => {
+              const isSelected = selectedTeam?.id === t.id;
+              return (
+                <div
+                  key={t.id}
+                  className={`admin-team-card ${isSelected ? 'selected' : ''}`}
+                  onClick={() => setSelectedTeam(t)}
+                >
+                  <div className="admin-team-card-header">
+                    <strong className="admin-team-card-title">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: isSelected ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                      </svg>
+                      {t.name}
+                    </strong>
+                    <span className={`badge ${t.is_active ? 'badge-active' : 'badge-inactive'}`}>
+                      <span className={`status-dot ${t.is_active ? 'status-dot-active' : 'status-dot-inactive'}`} />
+                      {t.is_active ? 'Hoạt động' : 'Tạm dừng'}
+                    </span>
+                  </div>
+
+                  <p className="admin-team-card-desc">
+                    {t.description || 'Chưa có mô tả nhiệm vụ cho nhóm này.'}
+                  </p>
+
+                  <div className="admin-team-card-footer">
+                    <span className="badge" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+                      👥 {t.member_count || 0} thành viên
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditTeamModal(t);
+                      }}
+                    >
+                      Chỉnh sửa
+                    </button>
+                  </div>
                 </div>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
-                  {t.description || 'Chưa có mô tả'}
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-1)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                  <span>{t.member_count} thành viên</span>
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openEditTeamModal(t);
-                    }}
-                  >
-                    Sửa
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Right Column: Selected Team Detail & Members */}
-          <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', background: 'var(--color-bg)', padding: 'var(--space-4)' }}>
+          {/* Right: Selected Team Detail & Members Table */}
+          <div className="admin-detail-panel">
             {detailLoading ? (
-              <div className="state-loading">Đang tải thành viên nhóm...</div>
+              <div className="state-loading">Đang tải chi tiết thành viên nhóm…</div>
             ) : !teamDetail ? (
-              <div className="state-empty">Chọn một nhóm bên trái để xem thành viên.</div>
+              <div className="empty-state">Vui lòng chọn một nhóm ở danh sách bên trái để quản lý.</div>
             ) : (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-2)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+                <div className="admin-detail-header">
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{teamDetail.name}</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>{teamDetail.name}</h3>
+                      <span className={`badge ${teamDetail.is_active ? 'badge-active' : 'badge-inactive'}`}>
+                        <span className={`status-dot ${teamDetail.is_active ? 'status-dot-active' : 'status-dot-inactive'}`} />
+                        {teamDetail.is_active ? 'Đang hoạt động' : 'Tạm dừng'}
+                      </span>
+                    </div>
                     <p style={{ margin: 'var(--space-1) 0 0', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
-                      {teamDetail.description || 'Không có mô tả'}
+                      {teamDetail.description || 'Chưa có mô tả nhiệm vụ'}
                     </p>
                   </div>
+
                   <button
                     type="button"
                     className="btn-primary btn-sm"
                     onClick={openAddMember}
                   >
-                    + Thêm thành viên
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Thêm thành viên
                   </button>
                 </div>
 
-                <h4 style={{ margin: '0 0 var(--space-2)', fontSize: '0.95rem' }}>
-                  Thành viên nhóm ({teamDetail.members?.filter((m) => m.is_active).length || 0})
-                </h4>
+                <div style={{ marginTop: 'var(--space-4)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Thành viên trong nhóm ({teamDetail.members?.filter((m) => m.is_active).length || 0})
+                    </h4>
+                  </div>
 
-                {teamDetail.members?.filter((m) => m.is_active).length === 0 ? (
-                  <div className="state-empty" style={{ padding: 'var(--space-4)' }}>
-                    Nhóm này chưa có thành viên hoạt động nào.
-                  </div>
-                ) : (
-                  <div className="admin-table-container">
-                    <table className="admin-table">
-                      <thead>
-                        <tr>
-                          <th>Thành viên</th>
-                          <th>Email</th>
-                          <th>Vai trò trong nhóm</th>
-                          <th>Vai trò hệ thống</th>
-                          <th style={{ textAlign: 'right' }}>Thao tác</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {teamDetail.members
-                          .filter((m) => m.is_active)
-                          .map((m) => (
-                            <tr key={m.id}>
-                              <td style={{ fontWeight: 600 }}>{m.full_name}</td>
-                              <td>{m.email}</td>
-                              <td>
-                                <span className={`badge ${m.team_role === 'MANAGER' ? 'badge-manager' : 'badge-agent'}`}>
-                                  {m.team_role === 'MANAGER' ? 'Quản lý nhóm (Manager)' : 'Thành viên (Member)'}
-                                </span>
-                              </td>
-                              <td>
-                                <span className={`badge badge-${m.user_role.toLowerCase()}`}>
-                                  {m.user_role}
-                                </span>
-                              </td>
-                              <td style={{ textAlign: 'right' }}>
-                                <button
-                                  type="button"
-                                  className="btn-danger btn-sm"
-                                  onClick={() => setRemovingMember(m)}
-                                >
-                                  Xóa khỏi nhóm
-                                </button>
-                              </td>
+                  {teamDetail.members?.filter((m) => m.is_active).length === 0 ? (
+                    <div className="empty-state" style={{ padding: 'var(--space-6)' }}>
+                      <p style={{ margin: 0 }}>Nhóm này chưa có thành viên nào. Nhấn "+ Thêm thành viên" để phân bổ nhân sự.</p>
+                    </div>
+                  ) : (
+                    <div className="table-wrap">
+                      <div style={{ overflowX: 'auto' }}>
+                        <table className="admin-table">
+                          <thead>
+                            <tr>
+                              <th>THÀNH VIÊN</th>
+                              <th>VAI TRÒ TRONG NHÓM</th>
+                              <th>VAI TRÒ HỆ THỐNG</th>
+                              <th style={{ textAlign: 'right' }}>THAO TÁC</th>
                             </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                          </thead>
+                          <tbody>
+                            {teamDetail.members
+                              .filter((m) => m.is_active)
+                              .map((m) => {
+                                const initial = (m.full_name || m.email || '?').charAt(0).toUpperCase();
+                                return (
+                                  <tr key={m.id}>
+                                    <td>
+                                      <div className="user-identity-cell">
+                                        <span className={`user-avatar-sm user-avatar-${(m.user_role || 'agent').toLowerCase()}`}>
+                                          {initial}
+                                        </span>
+                                        <div className="user-identity-info">
+                                          <span className="user-identity-name">{m.full_name}</span>
+                                          <span className="user-identity-email">{m.email}</span>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td>
+                                      <span className={`badge ${m.team_role === 'MANAGER' ? 'badge-manager' : 'badge-agent'}`}>
+                                        {labelOf(TEAM_ROLE_LABELS, m.team_role)}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <span className={`badge badge-${m.user_role.toLowerCase()}`}>
+                                        {labelOf(ROLE_LABELS, m.user_role)}
+                                      </span>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                      <button
+                                        type="button"
+                                        className="btn-danger btn-sm"
+                                        onClick={() => setRemovingMember(m)}
+                                      >
+                                        Xóa khỏi nhóm
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -325,8 +439,14 @@ export default function AdminTeamsPage() {
         <div className="admin-modal-backdrop" onClick={() => setShowCreateTeamModal(false)}>
           <div className="admin-modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <h2 className="admin-modal-title">Tạo nhóm hỗ trợ mới</h2>
-              <button type="button" className="btn-secondary btn-sm" onClick={() => setShowCreateTeamModal(false)}>✕</button>
+              <h2 className="admin-modal-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+                Tạo nhóm hỗ trợ mới
+              </h2>
+              <button type="button" className="admin-modal-close" onClick={() => setShowCreateTeamModal(false)}>✕</button>
             </div>
             <form onSubmit={handleCreateTeam}>
               <div className="admin-modal-body">
@@ -337,26 +457,26 @@ export default function AdminTeamsPage() {
                     type="text"
                     required
                     className="admin-input"
-                    placeholder="VD: Team Kỹ thuật, Team Thanh toán..."
+                    placeholder="VD: Hỗ trợ Kỹ thuật cấp 2, Team Thanh toán…"
                     value={createTeamForm.name}
                     onChange={(e) => setCreateTeamForm({ ...createTeamForm, name: e.target.value })}
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Mô tả nhiệm vụ</label>
+                  <label className="form-label">Mô tả nhiệm vụ nhóm</label>
                   <textarea
                     className="admin-input"
                     rows={3}
-                    placeholder="Mô tả phạm vi xử lý vé của nhóm..."
+                    placeholder="Mô tả phạm vi hỗ trợ và phân loại yêu cầu tiếp nhận của nhóm…"
                     value={createTeamForm.description}
                     onChange={(e) => setCreateTeamForm({ ...createTeamForm, description: e.target.value })}
                   />
                 </div>
               </div>
               <div className="admin-modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setShowCreateTeamModal(false)}>Hủy</button>
+                <button type="button" className="btn-secondary" onClick={() => setShowCreateTeamModal(false)}>Hủy bỏ</button>
                 <button type="submit" className="btn-primary" disabled={createTeamSubmitting}>
-                  {createTeamSubmitting ? 'Đang tạo...' : 'Tạo nhóm'}
+                  {createTeamSubmitting ? 'Đang tạo…' : 'Xác nhận tạo nhóm'}
                 </button>
               </div>
             </form>
@@ -369,8 +489,14 @@ export default function AdminTeamsPage() {
         <div className="admin-modal-backdrop" onClick={() => setEditingTeam(null)}>
           <div className="admin-modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <h2 className="admin-modal-title">Chỉnh sửa nhóm: {editingTeam.name}</h2>
-              <button type="button" className="btn-secondary btn-sm" onClick={() => setEditingTeam(null)}>✕</button>
+              <h2 className="admin-modal-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Chỉnh sửa nhóm: {editingTeam.name}
+              </h2>
+              <button type="button" className="admin-modal-close" onClick={() => setEditingTeam(null)}>✕</button>
             </div>
             <form onSubmit={handleEditTeam}>
               <div className="admin-modal-body">
@@ -386,7 +512,7 @@ export default function AdminTeamsPage() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Mô tả</label>
+                  <label className="form-label">Mô tả nhiệm vụ</label>
                   <textarea
                     className="admin-input"
                     rows={3}
@@ -402,14 +528,14 @@ export default function AdminTeamsPage() {
                     onChange={(e) => setEditTeamForm({ ...editTeamForm, is_active: e.target.checked })}
                   />
                   <label htmlFor="team-active-toggle" className="form-label" style={{ cursor: 'pointer' }}>
-                    Nhóm đang hoạt động
+                    Nhóm đang hoạt động (cho phép tiếp nhận vé)
                   </label>
                 </div>
               </div>
               <div className="admin-modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setEditingTeam(null)}>Hủy</button>
+                <button type="button" className="btn-secondary" onClick={() => setEditingTeam(null)}>Hủy bỏ</button>
                 <button type="submit" className="btn-primary" disabled={editTeamSubmitting}>
-                  {editTeamSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  {editTeamSubmitting ? 'Đang lưu…' : 'Lưu thay đổi'}
                 </button>
               </div>
             </form>
@@ -422,16 +548,24 @@ export default function AdminTeamsPage() {
         <div className="admin-modal-backdrop" onClick={() => setShowAddMemberModal(false)}>
           <div className="admin-modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <h2 className="admin-modal-title">Thêm thành viên vào {selectedTeam?.name}</h2>
-              <button type="button" className="btn-secondary btn-sm" onClick={() => setShowAddMemberModal(false)}>✕</button>
+              <h2 className="admin-modal-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <line x1="19" y1="8" x2="19" y2="14" />
+                  <line x1="22" y1="11" x2="16" y2="11" />
+                </svg>
+                Thêm thành viên vào {selectedTeam?.name}
+              </h2>
+              <button type="button" className="admin-modal-close" onClick={() => setShowAddMemberModal(false)}>✕</button>
             </div>
             <form onSubmit={handleAddMember}>
               <div className="admin-modal-body">
                 {addMemberError && <div className="alert-error">{addMemberError}</div>}
                 {availableUsers.length === 0 ? (
-                  <p className="state-empty" style={{ padding: 'var(--space-3)' }}>
-                    Không có người dùng hoạt động nào khả dụng để thêm.
-                  </p>
+                  <div className="empty-state" style={{ padding: 'var(--space-4)' }}>
+                    Tất cả tài khoản hoạt động đã có trong nhóm hoặc chưa có tài khoản khả dụng.
+                  </div>
                 ) : (
                   <>
                     <div className="form-group">
@@ -444,7 +578,7 @@ export default function AdminTeamsPage() {
                       >
                         {availableUsers.map((u) => (
                           <option key={u.id} value={u.id}>
-                            {u.full_name} ({u.email}) — {u.role}
+                            {u.full_name} ({u.email}) — {labelOf(ROLE_LABELS, u.role)}
                           </option>
                         ))}
                       </select>
@@ -456,21 +590,21 @@ export default function AdminTeamsPage() {
                         value={addMemberForm.team_role}
                         onChange={(e) => setAddMemberForm({ ...addMemberForm, team_role: e.target.value })}
                       >
-                        <option value="MEMBER">Thành viên (Member - xử lý vé)</option>
-                        <option value="MANAGER">Quản lý nhóm (Manager - phân công vé)</option>
+                        <option value="MEMBER">Thành viên (Tiếp nhận và giải quyết vé hỗ trợ)</option>
+                        <option value="MANAGER">Trưởng nhóm (Phân công và điều phối nội bộ nhóm)</option>
                       </select>
                     </div>
                   </>
                 )}
               </div>
               <div className="admin-modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setShowAddMemberModal(false)}>Hủy</button>
+                <button type="button" className="btn-secondary" onClick={() => setShowAddMemberModal(false)}>Hủy bỏ</button>
                 <button
                   type="submit"
                   className="btn-primary"
                   disabled={addMemberSubmitting || availableUsers.length === 0}
                 >
-                  {addMemberSubmitting ? 'Đang thêm...' : 'Thêm vào nhóm'}
+                  {addMemberSubmitting ? 'Đang thêm…' : 'Thêm vào nhóm'}
                 </button>
               </div>
             </form>
@@ -484,27 +618,27 @@ export default function AdminTeamsPage() {
           <div className="admin-modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h2 className="admin-modal-title">Xác nhận xóa thành viên</h2>
-              <button type="button" className="btn-secondary btn-sm" onClick={() => setRemovingMember(null)}>✕</button>
+              <button type="button" className="admin-modal-close" onClick={() => setRemovingMember(null)}>✕</button>
             </div>
             <div className="admin-modal-body">
               {removeError && <div className="alert-error">{removeError}</div>}
-              <p>
-                Bạn có chắc chắn muốn xóa <strong>{removingMember.full_name}</strong> khỏi nhóm{' '}
+              <p style={{ margin: 0, lineHeight: 1.5 }}>
+                Bạn có chắc chắn muốn xóa thành viên <strong>{removingMember.full_name}</strong> khỏi nhóm{' '}
                 <strong>{selectedTeam?.name}</strong>?
               </p>
-              <p className="form-hint">
-                Lịch sử xử lý vé trước đây của thành viên này vẫn sẽ được giữ nguyên toàn vẹn trong nhật ký.
-              </p>
+              <div className="alert-warning" style={{ marginTop: 'var(--space-2)', fontSize: 'var(--font-size-xs)' }}>
+                ℹ️ Lưu ý: Lịch sử xử lý vé trước đây của thành viên này trong hệ thống vẫn được bảo lưu vĩnh viễn trong nhật ký kiểm toán.
+              </div>
             </div>
             <div className="admin-modal-footer">
-              <button type="button" className="btn-secondary" onClick={() => setRemovingMember(null)}>Hủy</button>
+              <button type="button" className="btn-secondary" onClick={() => setRemovingMember(null)}>Hủy bỏ</button>
               <button
                 type="button"
                 className="btn-danger"
                 disabled={removeSubmitting}
                 onClick={handleRemoveMember}
               >
-                {removeSubmitting ? 'Đang xóa...' : 'Xóa khỏi nhóm'}
+                {removeSubmitting ? 'Đang xóa…' : 'Xác nhận xóa khỏi nhóm'}
               </button>
             </div>
           </div>
