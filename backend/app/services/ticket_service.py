@@ -21,6 +21,7 @@ from app.models.enums import AuditOutcome, CommentSource, TicketStatus, UserRole
 from app.models.team import SupportTeam, TeamMember
 from app.models.ticket import Attachment, Comment, SlaPolicy, Ticket, TicketHistory
 from app.models.user import User
+from app.core.sanitizer import sanitize_text
 from app.services.assignment import is_valid_assignee, needs_reassignment
 from app.services.audit import write_audit
 from app.services.sla_service import extend_deadline
@@ -284,10 +285,10 @@ async def create_portal_ticket(session: AsyncSession, *, requester_name: str, re
     priority = "MEDIUM"  # portal tickets are MEDIUM (design spec 8 note: no priority picker on the public portal)
     ticket = Ticket(
         ticket_code=await unique_ticket_code(session),
-        requester_name=requester_name.strip(),
+        requester_name=sanitize_text(requester_name.strip()),
         requester_email=_norm_email(requester_email),
-        subject=subject.strip(),
-        description=description.strip(),
+        subject=sanitize_text(subject.strip()),
+        description=sanitize_text(description.strip()),
         category=category,
         priority=priority,
         status=TicketStatus.OPEN.value,
@@ -319,6 +320,8 @@ async def update_ticket(session: AsyncSession, *, ticket: Ticket, actor: User, c
         if new is None and field != "category":
             # Only `category` may be cleared to NULL; the rest are non-nullable.
             raise AppError(422, "VALIDATION_ERROR", "Giá trị không được để trống.")
+        if isinstance(new, str) and field in ("subject", "description"):
+            new = sanitize_text(new)
         old = getattr(ticket, field)
         if old == new:
             continue
@@ -444,7 +447,7 @@ async def assign_ticket(session: AsyncSession, *, ticket: Ticket, actor: User, t
 
 async def add_comment(session: AsyncSession, *, ticket: Ticket, actor: User, content: str,
                       visibility: str, files: list[StoredFile] | None) -> Comment:
-    body = content.strip()
+    body = sanitize_text(content.strip())
     if not body:
         raise AppError(422, "VALIDATION_ERROR", "Nội dung bình luận không được để trống.")
     if visibility not in ("PUBLIC", "INTERNAL"):

@@ -1,0 +1,128 @@
+[
+  {
+    "id": "TC1",
+    "name": "Tạo vé từ Public Portal",
+    "status": "PASS",
+    "details": "Mã vé tạo thành công: TK-U3H3NORH"
+  },
+  {
+    "id": "TC2",
+    "name": "Tra cứu vé Public Portal",
+    "status": "PASS",
+    "details": "Tra cứu thành công vé TK-U3H3NORH với đầy đủ thông tin"
+  },
+  {
+    "id": "TC3",
+    "name": "Hiển thị lỗi khi nhập sai thông tin",
+    "status": "PASS",
+    "details": "Thông báo lỗi: \"Email hoặc mật khẩu không đúng.\""
+  },
+  {
+    "id": "TC4",
+    "name": "Đăng nhập Admin & Phân quyền Menu",
+    "status": "PASS",
+    "details": "Admin có đủ 3 menu: [Danh sách vé, Bảng điều khiển, Quản trị hệ thống]"
+  },
+  {
+    "id": "TC5",
+    "name": "Quản lý Người dùng, Nhóm, SLA, Audit Log",
+    "status": "PASS",
+    "details": "4 phân hệ quản trị tải thành công, danh sách hiển thị 15 tài khoản"
+  },
+  {
+    "id": "TC6",
+    "name": "Dashboard hiển thị chỉ số KPI & SLA",
+    "status": "PASS",
+    "details": "Hiển thị 6 thẻ chỉ số KPI hoạt động và giám sát SLA"
+  },
+  {
+    "id": "TC7",
+    "name": "Tìm kiếm, lọc và mở chi tiết ticket",
+    "status": "PASS",
+    "details": "Mở chi tiết vé mã TK-U3H3NORH (ID: 11864cf5-5f53-4133-b312-6642b4209668)"
+  },
+  {
+    "id": "TC8.1",
+    "name": "Phân quyền Manager không thấy menu Quản trị",
+    "status": "PASS",
+    "details": "Menu Manager: [Danh sách vé, Bảng điều khiển]"
+  },
+  {
+    "id": "TC8.2",
+    "name": "Chặn Manager truy cập trái phép trang Admin",
+    "status": "PASS",
+    "details": "Hiển thị màn hình 403 \"Không có quyền truy cập\""
+  },
+  {
+    "id": "TC8.3",
+    "name": "Manager phân công ticket cho nhân viên",
+    "status": "PASS",
+    "details": "Phân công vé thành công cho Team Kỹ thuật (Agent Lan)"
+  },
+  {
+    "id": "TC9.1",
+    "name": "Chặn Agent truy cập trái phép trang Admin",
+    "status": "PASS",
+    "details": "Hiển thị màn hình 403 \"Không có quyền truy cập\""
+  },
+  {
+    "id": "TC9.2",
+    "name": "Agent thêm bình luận phản hồi khách hàng",
+    "status": "PASS",
+    "details": "Bình luận được lưu và hiển thị trên dòng thời gian timeline"
+  },
+  {
+    "id": "TC9.3",
+    "name": "Agent cập nhật trạng thái vé theo quy trình",
+    "status": "PASS",
+    "details": "Chuyển trạng thái hợp lệ tuân thủ State Machine"
+  },
+  {
+    "id": "TC10.1",
+    "name": "AI Phân loại tự động (Category/Priority)",
+    "status": "PASS",
+    "details": "Sinh đề xuất phân loại kèm độ tin cậy"
+  },
+  {
+    "id": "TC10.2",
+    "name": "AI Tóm tắt vé (Summary/Key points)",
+    "status": "PASS",
+    "details": "Sinh tóm tắt vấn đề và điểm quan trọng"
+  },
+  {
+    "id": "TC10.3",
+    "name": "AI Tạo nháp câu trả lời (Draft reply)",
+    "status": "PASS",
+    "details": "Sinh bản nháp phản hồi khách hàng theo chỉ dẫn"
+  },
+  {
+    "id": "TC10.4",
+    "name": "Duyệt bản nháp AI & đưa vào ô trả lời",
+    "status": "PASS",
+    "details": "Thẻ kết quả AI hiển thị đầy đủ các nút duyệt"
+  },
+  {
+    "id": "TC10.5",
+    "name": "Chỉnh sửa kết quả AI (Human-in-the-loop)",
+    "status": "PASS",
+    "details": "Hỗ trợ giao diện chỉnh sửa phân loại và ưu tiên"
+  },
+  {
+    "id": "TC10.6",
+    "name": "Từ chối kết quả AI (Human-in-the-loop)",
+    "status": "PASS",
+    "details": "Hỗ trợ đầy đủ các thao tác Human-in-the-loop"
+  },
+  {
+    "id": "TC11.1",
+    "name": "Responsive 360px: Header & Menu Drawer",
+    "status": "PASS",
+    "details": "Giao diện thích ứng với kích thước 360px"
+  },
+  {
+    "id": "TC11.2",
+    "name": "Responsive 360px: Public Portal form",
+    "status": "PASS",
+    "details": "Form tạo ticket hiển thị gọn gàng, nút bấm và trường nhập liệu dễ thao tác trên mobile"
+  }
+]

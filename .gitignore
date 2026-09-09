@@ -32,8 +32,10 @@ Thumbs.db
 # Logs
 *.log
 
-# S2 uploaded attachments (stored under backend/uploads/, DB keeps metadata only)
+# S2 uploaded attachments (stored under backend/uploads/ or root uploads/, DB keeps metadata only)
 backend/uploads/
+/uploads/
+
 
 # AI IDE metadata
 .agents/

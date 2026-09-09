@@ -227,3 +227,82 @@
   --sidebar-active-text: #2563eb;
   --sidebar-active-border: #bfdbfe;
 }
+
+/* ============================================================
+   DARK THEME PALETTE (Tokens & A11y Sweep)
+   Deep luminous slate theme for comfortable low-light usage
+   ============================================================ */
+[data-theme="dark"] {
+  --color-bg: #0b0f19;
+  --color-surface: #111827;
+  --color-surface-raised: #1f2937;
+  --color-surface-hover: #1e293b;
+  --color-border: #1f293d;
+  --color-border-subtle: #162032;
+  --color-border-strong: #334155;
+  --color-text: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  --color-text-faint: #64748b;
+
+  --color-primary-subtle: #1e293b;
+  --color-primary-text: #60a5fa;
+  --color-primary-border: #2563eb;
+
+  --color-success-subtle: #064e3b;
+  --color-success-text: #4ade80;
+  --color-success-border: #059669;
+
+  --color-warning-subtle: #451a03;
+  --color-warning-text: #fbbf24;
+  --color-warning-border: #d97706;
+
+  --color-danger-subtle: #450a0a;
+  --color-danger-text: #f87171;
+  --color-danger-border: #dc2626;
+
+  --ai-pending-bg: #1e1b4b;
+  --ai-pending-text: #a5b4fc;
+  --ai-pending-border: #4338ca;
+
+  --ai-accepted-bg: #064e3b;
+  --ai-accepted-text: #4ade80;
+  --ai-accepted-border: #059669;
+
+  --ai-edited-bg: #1e293b;
+  --ai-edited-text: #60a5fa;
+  --ai-edited-border: #2563eb;
+
+  --ai-rejected-bg: #1e293b;
+  --ai-rejected-text: #94a3b8;
+  --ai-rejected-border: #334155;
+
+  --ai-failed-bg: #450a0a;
+  --ai-failed-text: #f87171;
+  --ai-failed-border: #b91c1c;
+
+  --sla-ok-bg: #064e3b;
+  --sla-ok-text: #4ade80;
+  --sla-ok-border: #059669;
+
+  --sla-warn-bg: #451a03;
+  --sla-warn-text: #fbbf24;
+  --sla-warn-border: #d97706;
+
+  --sla-over-bg: #450a0a;
+  --sla-over-text: #f87171;
+  --sla-over-border: #dc2626;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+
+  --sidebar-bg: #0f172a;
+  --sidebar-border: #1e293b;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-hover: #f8fafc;
+  --sidebar-active-bg: #1e293b;
+  --sidebar-active-text: #60a5fa;
+  --sidebar-active-border: #3b82f6;
+}

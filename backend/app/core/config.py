@@ -52,11 +52,12 @@ class Settings(BaseSettings):
     # Reporting (S5 dashboard): day boundaries are resolved in this IANA zone.
     reporting_timezone: str = "Asia/Ho_Chi_Minh"
 
-    # Rate limiting (S2: slowapi over /public only; S4: AI generation endpoints)
+    # Rate limiting (S2: /public; S4: AI endpoints; S7: auth login)
     rate_limit_enabled: bool = True
     public_create_rate: str = "20/hour"
     public_track_rate: str = "60/hour"
     ai_rate: str = "30/minute"
+    auth_login_rate: str = "10/minute"
 
     # Seed admin (created from Task 5 onward)
     seed_admin_email: str = "admin@example.com"

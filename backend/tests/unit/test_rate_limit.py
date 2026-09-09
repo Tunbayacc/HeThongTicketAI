@@ -23,3 +23,15 @@ async def test_rate_limit_handler_returns_uniform_429_body():
     body = json.loads(resp.body)
     assert body == {"error_code": "RATE_LIMITED", "message": body["message"], "details": None}
     assert body["error_code"] == "RATE_LIMITED"
+
+
+def test_auth_login_rate_setting_and_route_configured():
+    from app.api.auth import router as auth_router
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    assert hasattr(settings, "auth_login_rate")
+    assert settings.auth_login_rate == "10/minute"
+
+    auth_paths = [r.path for r in auth_router.routes]
+    assert "/login" in auth_paths

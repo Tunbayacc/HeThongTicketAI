@@ -755,3 +755,56 @@
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
 }
+
+/* --- Dark theme refinements for Admin workspace ----------------------- */
+[data-theme="dark"] .admin-team-card.selected {
+  border-color: var(--color-primary);
+  background: rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+/* --- Mobile Responsive Rules for Admin (down to 360px) ----------------- */
+@media (max-width: 768px) {
+  .admin-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    width: 100%;
+    padding-bottom: var(--space-1);
+  }
+
+  .admin-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  .admin-filter-bar input,
+  .admin-filter-bar select {
+    width: 100%;
+  }
+
+  .admin-modal-content {
+    width: 95vw;
+    max-width: 95vw;
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .audit-meta-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-table th,
+  .admin-table td {
+    padding: var(--space-2);
+    font-size: var(--font-size-xs);
+  }
+
+  .admin-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+}

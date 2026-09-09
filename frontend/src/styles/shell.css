@@ -295,7 +295,52 @@
   margin-left: var(--sidebar-collapsed-width);
 }
 
-/* --- Responsive Layout ----------------------------------------------- */
+/* --- Action buttons (theme toggle & sidebar toggle) --- */
+.sidebar-top-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-primary);
+  border-color: var(--color-border-strong);
+}
+
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: flex;
+}
+
+/* --- Mobile Top Header (hidden on desktop) --- */
+.mobile-header {
+  display: none;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* --- Responsive Layout (Tablet <= 1024px) --- */
 @media (max-width: 1024px) {
   .sidebar {
     width: var(--sidebar-collapsed-width);
@@ -333,30 +378,128 @@
   }
 }
 
+/* --- Mobile Viewport (<= 768px down to 360px) --- */
 @media (max-width: 768px) {
-  .sidebar {
-    display: none;
+  .desktop-only {
+    display: none !important;
   }
 
-  .app-content {
-    margin-left: 0;
+  .mobile-only {
+    display: flex !important;
   }
 
-  .app-shell::before {
-    content: '';
-    display: block;
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     height: 52px;
+    padding: 0 var(--space-3);
     background: var(--color-surface);
-    z-index: var(--z-header);
     border-bottom: 1px solid var(--color-border);
+    z-index: var(--z-header);
     box-shadow: var(--shadow-xs);
   }
 
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: none;
+    color: var(--color-text);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+  }
+
+  .mobile-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text);
+  }
+
+  .mobile-brand-sub {
+    font-size: 9px;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Mobile Drawer Sidebar */
+  .sidebar {
+    display: flex !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 270px !important;
+    max-width: 80vw;
+    z-index: var(--z-modal);
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .sidebar .sidebar-brand-text,
+  .sidebar .sidebar-label,
+  .sidebar .sidebar-user-info,
+  .sidebar .sidebar-logout span {
+    display: block !important;
+  }
+
+  .sidebar .sidebar-link {
+    justify-content: flex-start !important;
+    padding: var(--space-2) var(--space-3) !important;
+  }
+
+  .sidebar .sidebar-user {
+    justify-content: flex-start !important;
+  }
+
+  .sidebar .sidebar-logout {
+    justify-content: flex-start !important;
+  }
+
+  .sidebar-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    cursor: pointer;
+  }
+
+  /* Mobile Backdrop */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    z-index: calc(var(--z-modal) - 1);
+  }
+
   .app-content {
+    margin-left: 0 !important;
     padding-top: 52px;
   }
 }
