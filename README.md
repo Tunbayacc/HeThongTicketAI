@@ -93,6 +93,38 @@ Từ S6, quản trị viên (`ADMIN`) có khu vực **"Quản trị"** tại `/a
 
 Demo nhanh: đăng nhập `admin@example.com` (mật khẩu `Admin@Dev123`) → vào **"Quản trị"** → tab "Người dùng" → tạo tài khoản agent mới → tab "Nhóm hỗ trợ" → gán agent mới vào Team Kỹ thuật → đăng xuất và đăng nhập bằng tài khoản agent vừa tạo. Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-03-s6-admin.md`.
 
+### S7 — Củng cố bảo mật, Tối ưu giao diện & Kịch bản Demo toàn trình
+
+Sprint 7 hoàn thiện lát cắt bàn giao cuối cùng với trọng tâm củng cố an toàn hệ thống, kiểm thử toàn trình, nâng cấp giao diện responsive và chuẩn bị kịch bản demo:
+
+- **Bảo mật & Phòng vệ (AC-SEC-01..06, SRS §11.3)**:
+  - **Chống Brute-force**: Giới hạn tần suất đăng nhập `POST /api/auth/login` (SlowAPI, `auth_login_rate="10/minute"`, trả về chuẩn `429 RATE_LIMITED`).
+  - **Chống XSS**: Bộ lọc làm sạch dữ liệu đầu vào (`backend/app/core/sanitizer.py`) tự động loại bỏ các thẻ HTML/script nguy hại trong tiêu đề, mô tả và bình luận vé.
+  - **Chống dò vé & IDOR**: Kiểm tra quyền truy cập chặt chẽ theo vai trò và nhóm; truy cập vé ngoài phạm vi trả về `404` (không làm lộ sự tồn tại của vé) hoặc `403`.
+  - **Chống SQL Injection**: Truy vấn an toàn qua SQLAlchemy ORM 2.0 async với tham số hóa (parameterized queries).
+  - **An toàn tải tệp (File Upload Guard)**: Chặn hoàn toàn các tệp thực thi (`.exe`, `.bat`, `.sh`, `.cmd`,...) hoặc dung lượng vượt quá 10MB (`400 VALIDATION_ERROR`).
+  - **Không lộ thông tin nhạy cảm**: Tuyệt đối không ghi JWT secret, mật khẩu, API key hay PII vào response lỗi hoặc log hệ thống.
+- **Tối ưu giao diện & Khả năng tiếp cận (Accessibility WCAG 2.1 AA)**:
+  - **Chế độ Sáng / Tối (Dark/Light Theme)**: Bảng màu token hoàn chỉnh (`[data-theme="dark"]`), tự động nhận diện theo hệ điều hành (`prefers-color-scheme`) kèm nút chuyển theme nhanh trên thanh công cụ.
+  - **Responsive di động từ 360px**: Thanh điều hướng di động dạng ngăn kéo trượt (drawer menu hamburger), bảng dữ liệu hỗ trợ cuộn ngang (`table-responsive`) chống vỡ bố cục, form Public Portal và thẻ chi tiết vé tối ưu trên màn hình nhỏ.
+  - **Khả năng tiếp cận bàn phím**: Điều hướng logic bằng Tab/Shift+Tab, viền focus nổi bật (`:focus-visible`), hỗ trợ đóng nhanh tất cả hộp thoại (modal) và menu di động bằng phím **Escape**.
+- **Bộ kiểm thử tích hợp & E2E**:
+  - `backend/tests/integration/test_security_s7.py`: Kiểm thử tự động toàn bộ tiêu chí bảo mật AC-SEC-01..06 và rate limiting.
+  - `backend/tests/integration/test_system_smoke_s7.py`: Kiểm thử toàn bộ vòng đời nghiệp vụ (Public Portal → Phân công → AI phân loại/tóm tắt/tạo nháp → Con người duyệt → Đổi trạng thái → Giám sát SLA → Dashboard & Audit).
+  - Bộ kiểm thử E2E tự động (21 ca kiểm thử PASS 100%, có minh chứng ảnh chụp màn hình tại `docs/evidence/s7/summary.md` và `docs/evidence/s7/accessibility.md`).
+- **Kịch bản Demo toàn trình**: Tài liệu [`docs/demo-scenario.md`](docs/demo-scenario.md) cung cấp hướng dẫn từng bước theo 6 giai đoạn phục vụ nghiệm thu và đánh giá.
+
+Demo nhanh: xem tài liệu [`docs/demo-scenario.md`](docs/demo-scenario.md) để thực hiện kịch bản mẫu từ gửi vé công khai đến duyệt AI và đóng vé. Chạy bộ kiểm thử an toàn và smoke test:
+```bash
+# Chạy kiểm thử bảo mật S7
+DATABASE_URL=postgresql+asyncpg://ai_support:ai_support@localhost:5432/ai_support INTEGRATION=1 .venv/Scripts/python -m pytest backend/tests/integration/test_security_s7.py -v
+
+# Chạy kiểm thử luồng toàn trình S7
+DATABASE_URL=postgresql+asyncpg://ai_support:ai_support@localhost:5432/ai_support INTEGRATION=1 .venv/Scripts/python -m pytest backend/tests/integration/test_system_smoke_s7.py -v
+```
+Chi tiết kỹ thuật: `docs/superpowers/plans/2026-09-08-s7-consolidation-demo.md` và `docs/evidence/s7/summary.md`.
+
+
 ## Chạy backend khi đang phát triển
 
 - DB: `docker compose up -d db`
