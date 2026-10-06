@@ -44,7 +44,7 @@ Mỗi lượt gọi AI (thành công hoặc thất bại) đều sinh ra một b
 | `result_type` | `VARCHAR(30)` | Loại tác vụ: `CLASSIFICATION`, `SUMMARY`, `DRAFT_REPLY` |
 | `status` | `VARCHAR(30)` | Trạng thái vòng đời: `PENDING_REVIEW`, `APPROVED`, `EDITED`, `REJECTED`, `FAILED` |
 | `model_name` | `VARCHAR(100)` | Tên mô hình AI được gọi (ví dụ: `gemini-3.8-flash`, `gemini-2.0-flash`, `mock`) |
-| `prompt_version` | `VARCHAR(30)` | Phiên bản của template prompt hệ thống (ví dụ: `classification_v1`) |
+| `prompt_version` | `VARCHAR(30)` | Phiên bản của template prompt hệ thống (ví dụ: `classify-v1`, `summarize-v1`, `draft-v1`) |
 | `input_hash` | `VARCHAR(128)` | Mã băm SHA-256 của chuỗi văn bản đầu vào sau khi đã che giấu PII |
 | `context_cutoff_at` | `TIMESTAMPTZ` | Mốc thời gian của bình luận cuối cùng được đưa vào ngữ cảnh |
 | `original_output` | `JSONB` | Toàn bộ kết quả gốc có cấu trúc do AI sinh ra (chưa qua người sửa) |

@@ -29,8 +29,8 @@ docker compose up -d
 | Vai trò (Role) | Email đăng nhập | Mật khẩu mặc định | Phạm vi quyền hạn (Data Scope) |
 |---|---|---|---|
 | **Quản trị viên (Admin)** | `admin@example.com` | `Admin@Dev123` | Toàn quyền hệ thống, xem mọi ticket, quản trị user/team/SLA/audit |
-| **Quản lý Kỹ thuật (Manager)** | `manager.tech@example.com` | `It@123456` | Quản lý nhóm Hỗ trợ Kỹ thuật, phân công vé, xem dashboard nhóm |
-| **Nhân viên Kỹ thuật (Agent)** | `agent1.tech@example.com` | `It@123456` | Xử lý các vé thuộc nhóm Kỹ thuật hoặc được gán trực tiếp |
+| **Quản lý Kỹ thuật (Manager)** | `hung.manager@example.com` | `hung.manager@Dev123` | Quản lý Team Kỹ thuật, phân công vé, xem dashboard nhóm |
+| **Nhân viên Kỹ thuật (Agent)** | `lan.agent@example.com` | `lan.agent@Dev123` | Xử lý các vé thuộc Team Kỹ thuật hoặc được gán trực tiếp |
 | **Khách hàng (Public User)** | *Không cần tài khoản* | *Không cần mật khẩu* | Thao tác tại Cổng công khai, xác thực bằng Mã vé + Email |
 
 ---
@@ -86,15 +86,15 @@ sequenceDiagram
 
 1. **Đăng nhập vai trò Quản lý**:
    - Truy cập: `http://localhost:5173/login`.
-   - Đăng nhập tài khoản: `manager.tech@example.com` / `It@123456`.
+   - Đăng nhập tài khoản: `hung.manager@example.com` / `hung.manager@Dev123`.
 2. **Xem danh sách vé**:
    - Hệ thống chuyển đến trang `/app/tickets`.
    - Quản lý nhìn thấy vé `TK-8B3K7Q2M` đang ở trạng thái `OPEN`, chưa gán người phụ trách (`Chưa gán`).
 3. **Thực hiện phân công (Assignment)**:
    - Bấm mở chi tiết vé `TK-8B3K7Q2M`.
    - Tại thanh tác vụ bên phải, bấm **"Phân công"**.
-   - Chọn Nhóm: **Hỗ trợ Kỹ thuật (Technical Support)**.
-   - Chọn Nhân viên: **Demo Agent 1** (`agent1.tech@example.com`).
+   - Chọn Nhóm: **Team Kỹ thuật**.
+   - Chọn Nhân viên: **Trần Thị Lan** (`lan.agent@example.com`).
    - Bấm **"Lưu phân công"**.
    - Hệ thống cập nhật người phụ trách, ghi nhận lịch sử thay đổi và phiên bản khóa lạc quan (`version`).
 
@@ -103,7 +103,7 @@ sequenceDiagram
 ### Bước 3: Nhân viên (Agent) xử lý vé với Trợ lý AI (Human-in-the-Loop)
 
 1. **Đăng nhập vai trò Nhân viên**:
-   - Đăng xuất và đăng nhập tài khoản: `agent1.tech@example.com` / `It@123456`.
+   - Đăng xuất và đăng nhập tài khoản: `lan.agent@example.com` / `lan.agent@Dev123`.
 2. **Tiếp nhận vé được gán**:
    - Tại `/app/tickets`, bật bộ lọc **"Chỉ vé tôi phụ trách"** → Vé `TK-8B3K7Q2M` hiển thị ngay đầu danh sách.
    - Bấm mở vé để xem chi tiết, thông tin khách hàng và hạn chót SLA.

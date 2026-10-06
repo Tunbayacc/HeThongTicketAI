@@ -259,6 +259,7 @@ Thực thể trung tâm lưu trữ thông tin vòng đời của vé hỗ trợ 
 | `version` | INTEGER | NOT NULL | `1` | Số phiên bản dùng cho Khóa lạc quan (Optimistic Lock) |
 | `created_at` | TIMESTAMPTZ | NOT NULL | `NOW()` | Thời điểm tạo vé |
 | `updated_at` | TIMESTAMPTZ | NOT NULL | `NOW()` | Thời điểm cập nhật vé gần nhất |
+| `archived_at` | TIMESTAMPTZ | NULL | `NULL` | Thời điểm lưu trữ vé (nếu có) |
 
 * **Chỉ mục tìm kiếm & lọc**:
   * `ix_tickets_ticket_code` (UNIQUE)
@@ -282,6 +283,8 @@ Lưu trữ toàn bộ nội dung trao đổi qua lại giữa khách hàng và n
 | `source` | VARCHAR(20) | NOT NULL | `'HUMAN'` | Nguồn tạo: `HUMAN` hoặc `AI_ASSISTED` |
 | `ai_result_id` | UUID | FK `ai_results.id`, NULL | `NULL` | Tham chiếu tới bản ghi AI sinh ra nháp (nếu có) |
 | `created_at` | TIMESTAMPTZ | NOT NULL | `NOW()` | Thời điểm gửi bình luận |
+| `edited_at` | TIMESTAMPTZ | NULL | `NULL` | Thời điểm chỉnh sửa bình luận (nếu có) |
+| `deleted_at` | TIMESTAMPTZ | NULL | `NULL` | Thời điểm xóa mềm bình luận (nếu có) |
 
 * **Chỉ mục**: `ix_comments_ticket_created` trên `(ticket_id, created_at)`.
 
@@ -303,6 +306,7 @@ Lưu trữ metadata tệp tải lên đi kèm vé hoặc bình luận. Tệp v�
 | `checksum` | VARCHAR(128) | NULL | `NULL` | Mã băm SHA-256 kiểm tra toàn vẹn file |
 | `uploaded_by` | UUID | FK `users.id`, NULL | `NULL` | Người dùng tải lên (NULL nếu khách tải qua Portal) |
 | `created_at` | TIMESTAMPTZ | NOT NULL | `NOW()` | Thời điểm tải lên |
+| `deleted_at` | TIMESTAMPTZ | NULL | `NULL` | Thời điểm xóa tệp (nếu có) |
 
 ---
 

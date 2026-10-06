@@ -82,6 +82,14 @@ Tài liệu này tổng hợp toàn bộ các yêu cầu nghiệp vụ, yêu c�
 
 ## 4. Danh mục yêu cầu chức năng (Functional Requirements)
 
+### 4.0 Xác thực & Phân quyền (Auth & RBAC)
+* **FR-AUTH-01 (Must)**: Cho phép người dùng nội bộ (`AGENT, MANAGER, ADMIN`) đăng nhập bằng email hợp lệ và mật khẩu bảo mật.
+* **FR-AUTH-02 (Must)**: Từ chối đăng nhập đối với tài khoản không tồn tại, bị vô hiệu hóa (`is_active = false`) hoặc đang bị tạm khóa.
+* **FR-AUTH-03 (Must)**: Cấp cặp mã xác thực sau khi đăng nhập thành công: Access Token (JWT 15 phút mang `user_id, role`) và Refresh Token (7 ngày lưu mã băm SHA-256 trong Database và truyền qua HttpOnly Cookie).
+* **FR-AUTH-04 (Must)**: Hỗ trợ làm mới Access Token tự động qua Refresh Token còn hiệu lực và hỗ trợ đăng xuất an toàn (thu hồi ngay Refresh Token).
+* **FR-AUTH-05 (Must)**: Cơ chế chống tấn công brute-force: Tự động khóa tài khoản tạm thời 15 phút sau 5 lần đăng nhập thất bại liên tiếp; giới hạn tần suất gọi API đăng nhập (Rate Limit).
+* **FR-AUTH-06 (Must)**: Kiểm soát truy cập và điều hướng giao diện chặt chẽ theo vai trò và phạm vi dữ liệu (Data Scoping), chặn triệt để hành vi leo quyền hoặc truy cập trái phép.
+
 ### 4.1 Cổng công khai (Public Portal)
 * **FR-PUB-01 (Must)**: Biểu mẫu gửi vé tiếp nhận họ tên, email hợp lệ, tiêu đề, mô tả chi tiết, phân loại ban đầu và tối đa 5 tệp đính kèm.
 * **FR-PUB-02 (Must)**: Vé gửi thành công được tạo ở trạng thái `OPEN`, mức ưu tiên mặc định `MEDIUM`, tính toán thời hạn SLA ngay lập tức.
